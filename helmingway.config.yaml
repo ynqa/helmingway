@@ -1,0 +1,29 @@
+chart:
+  path: ./charts/example
+  releaseName: example
+  namespace: default
+
+aliases:
+  - name: dev
+    valueFiles:
+      - ./env/dev.yaml
+    values: {}
+
+  - name: staging
+    valueFiles:
+      - ./env/staging.yaml
+    values: {}
+
+  - name: prod
+    valueFiles:
+      - ./env/prod.yaml
+    values: {}
+
+preview:
+  defaultAlias: dev
+  templateGlob: templates/**/*.yaml
+
+diff:
+  defaultMode: alias
+  defaultLeft: dev
+  defaultRight: prod
