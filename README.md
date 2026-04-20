@@ -8,3 +8,10 @@
 - [ ] VSCode 上で、Helm チャートのレンダリング結果について alias 間の差分をチェックできる
 - [ ] VSCode 上で、Helm チャートのレンダリング結果と実際の Kubernetes リソースとの差分をチェックできる
 - [ ] VSCode 上で、Helm チャートのレンダリング結果について git commit 間の差分をチェックできる
+
+## Release Scope
+
+- [ ] Command Palette から `Helmingway: Preview Alias` を実行し、chart / alias を選択してプレビューを開ける
+- [ ] Helmingway の Side View から chart / alias / resource を選択してプレビューを開ける
+- [ ] Explorer の右クリックメニューから [設定](./helmingway.config.yaml) を起点にプレビューを開ける
+- [ ] エディタ右上のタイトルバーから [設定](./helmingway.config.yaml) を起点にプレビューを開ける
