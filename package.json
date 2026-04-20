@@ -9,8 +9,26 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
   "main": "./out/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "helmingway",
+          "title": "Helmingway",
+          "icon": "resources/helmingway.svg"
+        }
+      ]
+    },
+    "views": {
+      "helmingway": [
+        {
+          "id": "helmingway.preview",
+          "name": "Preview"
+        }
+      ]
+    }
+  },
   "scripts": {
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./"
