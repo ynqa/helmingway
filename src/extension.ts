@@ -9,7 +9,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   const provider = new HelmingwayPreviewProvider();
   context.subscriptions.push(
-    vscode.window.registerTreeDataProvider("helmingway.charts", provider),
+    vscode.window.registerTreeDataProvider("helmingway.preview", provider),
   );
 }
 
