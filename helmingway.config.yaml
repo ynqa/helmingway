@@ -1,20 +1,31 @@
-chart:
-  path: ./charts/example
-  releaseName: example
-  namespace: default
+# Helm レンダラー用の設定です。
+# Helm を使う場合の chart 一覧を定義します。
+helm:
+  charts:
+  - name: example
+    # Chart.yaml を含む chart ルートへのパスです。
+    path: ./charts/example
+    # alias で上書きしない場合に使う既定の release name です。
+    releaseName: example
+    # alias で上書きしない場合に使う既定の namespace です。
+    namespace: default
 
-aliases:
-- name: dev
-  valueFiles:
-  - ./env/dev.yaml
-  values: {}
+    # UI から選択できる Helm 用 alias の一覧です。
+    # 各 alias は values file とインライン values の組み合わせを表します。
+    aliases:
+    - name: dev
+      # `helm template -f` に渡す values file の一覧です。
+      valueFiles:
+      - ./env/dev.yaml
+      # values file 読み込み後に追加で上書きする values です。
+      values: {}
 
-- name: staging
-  valueFiles:
-  - ./env/staging.yaml
-  values: {}
+    - name: staging
+      valueFiles:
+      - ./env/staging.yaml
+      values: {}
 
-- name: prod
-  valueFiles:
-  - ./env/prod.yaml
-  values: {}
+    - name: prod
+      valueFiles:
+      - ./env/prod.yaml
+      values: {}
