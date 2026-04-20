@@ -23,8 +23,16 @@
     "views": {
       "helmingway": [
         {
-          "id": "helmingway.preview",
-          "name": "Preview"
+          "id": "helmingway.charts",
+          "name": "Charts"
+        },
+        {
+          "id": "helmingway.aliases",
+          "name": "Aliases"
+        },
+        {
+          "id": "helmingway.resources",
+          "name": "Resources"
         }
       ]
     }
