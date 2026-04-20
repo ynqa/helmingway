@@ -11,7 +11,6 @@
 
 ## Release Scope
 
-- [ ] Command Palette から `Helmingway: Preview Alias` を実行し、chart / alias を選択してプレビューを開ける
 - [ ] Helmingway の Side View から chart / alias / resource を選択してプレビューを開ける
 - [ ] Explorer の右クリックメニューから [設定](./helmingway.config.yaml) を起点にプレビューを開ける
 - [ ] エディタ右上のタイトルバーから [設定](./helmingway.config.yaml) を起点にプレビューを開ける
