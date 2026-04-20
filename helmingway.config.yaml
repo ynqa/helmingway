@@ -18,12 +18,3 @@ aliases:
   valueFiles:
   - ./env/prod.yaml
   values: {}
-
-preview:
-  defaultAlias: dev
-  templateGlob: templates/**/*.yaml
-
-diff:
-  defaultMode: alias
-  defaultLeft: dev
-  defaultRight: prod
