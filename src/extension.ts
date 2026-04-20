@@ -66,6 +66,7 @@ class HelmingwayPreviewProvider implements vscode.TreeDataProvider<HelmingwayTre
 }
 
 async function readHelmingwayConfig(): Promise<HelmingwayConfig> {
+  // TODO: Support reading helmingway.config.yaml from multiple VS Code workspace folders.
   const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
   if (!workspaceFolder) {
     vscode.window.showInformationMessage("Helmingway: ワークスペースを開いてください。");
