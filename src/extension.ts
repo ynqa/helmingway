@@ -2,7 +2,8 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import * as vscode from "vscode";
 import { parse } from "yaml";
-import type { HelmingwayConfig, HelmingwayTreeNode } from "./types";
+import type { ChartConfig, HelmingwayConfig, HelmingwayTreeNode } from "./types";
+import { toAliasTreeNodes, toChartTreeNode } from "./tree-node";
 
 let previewDocumentProvider: HelmingwayPreviewDocumentProvider;
 
@@ -43,6 +44,7 @@ export function deactivate() {}
  * Provide Helmingway sidebar tree shown in VS Code Side View.
  */
 class HelmingwayPreviewProvider implements vscode.TreeDataProvider<HelmingwayTreeNode> {
+  private charts: ChartConfig[] = [];
   /**
    * Build each row in the tree.
    *
@@ -77,21 +79,13 @@ class HelmingwayPreviewProvider implements vscode.TreeDataProvider<HelmingwayTre
   async getChildren(element?: HelmingwayTreeNode): Promise<HelmingwayTreeNode[]> {
     if (!element) {
       const config = await readHelmingwayConfig();
-      return (config.helm?.charts ?? []).map(
-        (chart): HelmingwayTreeNode => ({
-          type: "chart",
-          chart,
-        }),
-      );
+      this.charts = config.helm?.charts ?? [];
+      return this.charts.map(toChartTreeNode);
     }
 
     if (element.type === "chart") {
-      return (element.chart.aliases ?? []).map(
-        (alias): HelmingwayTreeNode => ({
-          type: "alias",
-          alias,
-        }),
-      );
+      const chart = this.charts.find((chart) => chart.name === element.chartName);
+      return chart ? toAliasTreeNodes(chart) : [];
     }
 
     return [];
@@ -108,13 +102,13 @@ async function openPreview(node: Extract<HelmingwayTreeNode, { type: "alias" }>)
 
   const content = [
     "# Helmingway Preview",
-    `alias: ${node.alias.name}`,
+    `alias: ${node.aliasName}`,
     "",
     "preview coming soon",
   ].join("\n");
   const uri = vscode.Uri.from({
     scheme: "helmingway-preview",
-    path: `/${node.alias.name}.yaml`,
+    path: `/${node.aliasName}.yaml`,
   });
 
   previewDocumentProvider.setContent(uri, content);
