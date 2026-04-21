@@ -11,6 +11,12 @@
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "commands": [
+      {
+        "command": "helmingway.openPreview",
+        "title": "Helmingway: Open Preview"
+      }
+    ],
     "viewsContainers": {
       "activitybar": [
         {

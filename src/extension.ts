@@ -10,17 +10,18 @@ export function activate(context: vscode.ExtensionContext) {
   const provider = new HelmingwayPreviewProvider();
   context.subscriptions.push(
     vscode.window.registerTreeDataProvider("helmingway.preview", provider),
+    vscode.commands.registerCommand("helmingway.openPreview", openPreview),
   );
 }
 
 export function deactivate() {}
 
 /**
- * Provides Helmingway sidebar tree shown in VS Code Side View.
+ * Provide Helmingway sidebar tree shown in VS Code Side View.
  */
 class HelmingwayPreviewProvider implements vscode.TreeDataProvider<HelmingwayTreeNode> {
   /**
-   * Builds each row in the tree.
+   * Build each row in the tree.
    *
    * Current UI example:
    *
@@ -42,6 +43,11 @@ class HelmingwayPreviewProvider implements vscode.TreeDataProvider<HelmingwayTre
 
     const item = new vscode.TreeItem(element.alias.name, vscode.TreeItemCollapsibleState.None);
     item.iconPath = new vscode.ThemeIcon("tag");
+    item.command = {
+      command: "helmingway.openPreview",
+      title: "Open Preview",
+      arguments: [element],
+    };
     return item;
   }
 
@@ -57,6 +63,7 @@ class HelmingwayPreviewProvider implements vscode.TreeDataProvider<HelmingwayTre
     if (element.type === "chart") {
       return (element.chart.aliases ?? []).map((alias) => ({
         type: "alias",
+        chart: element.chart,
         alias,
       }));
     }
@@ -65,6 +72,36 @@ class HelmingwayPreviewProvider implements vscode.TreeDataProvider<HelmingwayTre
   }
 }
 
+/**
+ * Open a preview document for the given alias node.
+ */
+async function openPreview(
+  node: Extract<HelmingwayTreeNode, { type: "alias" }> & { chart: { name: string } },
+): Promise<void> {
+  if (node.type !== "alias") {
+    return;
+  }
+
+  const document = await vscode.workspace.openTextDocument({
+    language: "yaml",
+    content: [
+      "# Helmingway Preview",
+      `alias: ${node.alias.name}`,
+      "",
+      "preview coming soon",
+    ].join("\n"),
+  });
+
+  await vscode.window.showTextDocument(document, {
+    preview: true,
+    viewColumn: vscode.ViewColumn.Beside,
+  });
+}
+
+/**
+ * Read and parse helmingway.yaml from workspace folder.
+ * If the file is missing or invalid, show an error message and return an empty config.
+ */
 async function readHelmingwayConfig(): Promise<HelmingwayConfig> {
   // TODO: Support reading helmingway.yaml from multiple VS Code workspace folders.
   const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
