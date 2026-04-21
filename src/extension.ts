@@ -4,12 +4,35 @@ import * as vscode from "vscode";
 import { parse } from "yaml";
 import type { HelmingwayConfig, HelmingwayTreeNode } from "./types";
 
+let previewDocumentProvider: HelmingwayPreviewDocumentProvider;
+
+/**
+ * Provide read-only preview content through `helmingway-preview` virtual document scheme.
+ */
+class HelmingwayPreviewDocumentProvider implements vscode.TextDocumentContentProvider {
+  private readonly onDidChangeEmitter = new vscode.EventEmitter<vscode.Uri>();
+  private readonly documents = new Map<string, string>();
+
+  readonly onDidChange = this.onDidChangeEmitter.event;
+
+  setContent(uri: vscode.Uri, content: string): void {
+    this.documents.set(uri.toString(), content);
+    this.onDidChangeEmitter.fire(uri);
+  }
+
+  provideTextDocumentContent(uri: vscode.Uri): string {
+    return this.documents.get(uri.toString()) ?? "";
+  }
+}
+
 export function activate(context: vscode.ExtensionContext) {
   console.log("Helmingway extension is now active.");
 
   const provider = new HelmingwayPreviewProvider();
+  previewDocumentProvider = new HelmingwayPreviewDocumentProvider();
   context.subscriptions.push(
     vscode.window.registerTreeDataProvider("helmingway.preview", provider),
+    vscode.workspace.registerTextDocumentContentProvider("helmingway-preview", previewDocumentProvider),
     vscode.commands.registerCommand("helmingway.openPreview", openPreview),
   );
 }
@@ -75,23 +98,26 @@ class HelmingwayPreviewProvider implements vscode.TreeDataProvider<HelmingwayTre
 /**
  * Open a preview document for the given alias node.
  */
-async function openPreview(
-  node: Extract<HelmingwayTreeNode, { type: "alias" }> & { chart: { name: string } },
-): Promise<void> {
+async function openPreview(node: Extract<HelmingwayTreeNode, { type: "alias" }>): Promise<void> {
   if (node.type !== "alias") {
     return;
   }
 
-  const document = await vscode.workspace.openTextDocument({
-    language: "yaml",
-    content: [
-      "# Helmingway Preview",
-      `alias: ${node.alias.name}`,
-      "",
-      "preview coming soon",
-    ].join("\n"),
+  const content = [
+    "# Helmingway Preview",
+    `alias: ${node.alias.name}`,
+    "",
+    "preview coming soon",
+  ].join("\n");
+  const uri = vscode.Uri.from({
+    scheme: "helmingway-preview",
+    path: `/${node.alias.name}.yaml`,
   });
 
+  previewDocumentProvider.setContent(uri, content);
+
+  const document = await vscode.workspace.openTextDocument(uri);
+  await vscode.languages.setTextDocumentLanguage(document, "yaml");
   await vscode.window.showTextDocument(document, {
     preview: true,
     viewColumn: vscode.window.activeTextEditor?.viewColumn,
