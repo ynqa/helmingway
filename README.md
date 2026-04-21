@@ -22,4 +22,8 @@
 - [x] Step 3: [設定](./helmingway.yaml) を読み込んで chart / alias を表示する
 - [x] Step 4: alias をクリックしたら仮のプレビューを開く
 - [x] Step 5: `helm template` を実行して alias ごとのレンダリング結果を表示する
-- [ ] Step 6: reload で alias ごとの `helm template` を再実行し、レンダリング状態を表示する
+- [ ] Step 6: reload で alias ごとの `helm template` を再実行する
+- [ ] Step 7: alias ごとのレンダリング結果をキャッシュする
+- [ ] Step 8: alias ごとのレンダリング状態を管理する
+- [ ] Step 9: alias のレンダリング状態を Side View に表示する
+- [ ] Step 10: プレビュー表示をキャッシュ参照に切り替える
