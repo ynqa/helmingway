@@ -5,6 +5,7 @@ import { parse } from "yaml";
 import { parseChartSource } from "./chart-source";
 import { findAliasConfig, findChartConfig } from "./config-lookup";
 import { renderHelmTemplate } from "./helm-template";
+import { AliasRenderStore } from "./alias-render-store";
 import { refreshPreview } from "./preview-refresh";
 import { toAliasTreeNodes, toChartTreeNode } from "./tree-node";
 import type {
@@ -17,6 +18,7 @@ import { getPrimaryWorkspaceFolder } from "./vscode-workspace";
 
 let previewDocumentProvider: HelmingwayPreviewDocumentProvider;
 let currentConfig: HelmingwayConfig = {};
+const previewCache = new AliasRenderStore();
 
 /**
  * Provide read-only preview content through `helmingway-preview` virtual document scheme.
@@ -57,6 +59,7 @@ export function activate(context: vscode.ExtensionContext) {
         provider,
         workspacePath: workspaceFolder.uri.fsPath,
         config: currentConfig,
+        cache: previewCache,
       });
     }),
   );

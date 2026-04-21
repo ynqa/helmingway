@@ -1,5 +1,6 @@
 import * as vscode from "vscode";
 import { renderHelmTemplate } from "./helm-template";
+import type { AliasRenderStore } from "./alias-render-store";
 import type { HelmingwayConfig } from "./types";
 
 type RefreshableProvider = {
@@ -10,6 +11,7 @@ type RefreshPreviewOptions = {
   provider: RefreshableProvider;
   workspacePath: string;
   config: HelmingwayConfig;
+  cache: AliasRenderStore;
 };
 
 /**
@@ -19,8 +21,10 @@ export async function refreshPreview({
   provider,
   workspacePath,
   config,
+  cache,
 }: RefreshPreviewOptions): Promise<void> {
   provider.refresh();
+  cache.prune(config);
 
   const renderTargets = (config.helm?.charts ?? []).flatMap((chart) =>
     (chart.aliases ?? []).map((alias) => ({
@@ -43,17 +47,20 @@ export async function refreshPreview({
       const failedAliases: string[] = [];
 
       for (const target of renderTargets) {
+        const version = cache.begin(target.chart.name, target.alias.name);
+
         progress.report({
           increment: 100 / renderTargets.length,
           message: `${target.chart.name}/${target.alias.name}`,
         });
 
         try {
-          await renderHelmTemplate({
+          const content = await renderHelmTemplate({
             workspacePath,
             chart: target.chart,
             alias: target.alias,
           });
+          cache.set(target.chart.name, target.alias.name, version, content);
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
           failedAliases.push(`${target.chart.name}/${target.alias.name}: ${message}`);
