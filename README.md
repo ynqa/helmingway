@@ -21,6 +21,6 @@
 - [x] Step 2: 空の Side View を表示する
 - [x] Step 3: [設定](./helmingway.yaml) を読み込んで chart / alias を表示する
 - [x] Step 4: alias をクリックしたら仮のプレビューを開く
-- [ ] Step 5: `helm template` を実行して alias ごとのレンダリング結果を表示する
+- [x] Step 5: `helm template` を実行して alias ごとのレンダリング結果を表示する
 - [ ] Step 6: レンダリング結果を Kubernetes resource 単位に分解して表示する
 - [ ] Step 7: resource をクリックしたら該当 resource の YAML だけをプレビューする
