@@ -18,12 +18,16 @@ export type AliasConfig = {
   values?: Record<string, unknown>;
 };
 
-export type HelmingwayTreeNode =
-  | {
-      type: "chart";
-      chart: ChartConfig;
-    }
-  | {
-      type: "alias";
-      alias: AliasConfig;
-    };
+export type ChartTreeNode = {
+  type: "chart";
+  chartName: string;
+  chartPath: string;
+};
+
+export type AliasTreeNode = {
+  type: "alias";
+  chartName: string;
+  aliasName: string;
+};
+
+export type HelmingwayTreeNode = ChartTreeNode | AliasTreeNode;
