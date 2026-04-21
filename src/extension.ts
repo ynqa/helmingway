@@ -77,18 +77,21 @@ class HelmingwayPreviewProvider implements vscode.TreeDataProvider<HelmingwayTre
   async getChildren(element?: HelmingwayTreeNode): Promise<HelmingwayTreeNode[]> {
     if (!element) {
       const config = await readHelmingwayConfig();
-      return (config.helm?.charts ?? []).map((chart) => ({
-        type: "chart",
-        chart,
-      }));
+      return (config.helm?.charts ?? []).map(
+        (chart): HelmingwayTreeNode => ({
+          type: "chart",
+          chart,
+        }),
+      );
     }
 
     if (element.type === "chart") {
-      return (element.chart.aliases ?? []).map((alias) => ({
-        type: "alias",
-        chart: element.chart,
-        alias,
-      }));
+      return (element.chart.aliases ?? []).map(
+        (alias): HelmingwayTreeNode => ({
+          type: "alias",
+          alias,
+        }),
+      );
     }
 
     return [];
