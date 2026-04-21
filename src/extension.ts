@@ -60,13 +60,14 @@ class HelmingwayPreviewProvider implements vscode.TreeDataProvider<HelmingwayTre
    */
   getTreeItem(element: HelmingwayTreeNode): vscode.TreeItem {
     if (element.type === "chart") {
-      const item = new vscode.TreeItem(element.chart.name, vscode.TreeItemCollapsibleState.Collapsed);
-      item.description = element.chart.path;
+      const item = new vscode.TreeItem(element.chartName, vscode.TreeItemCollapsibleState.Collapsed);
+      // Show chart path as description in the sidebar.
+      item.description = element.chartPath;
       item.iconPath = new vscode.ThemeIcon("package");
       return item;
     }
 
-    const item = new vscode.TreeItem(element.alias.name, vscode.TreeItemCollapsibleState.None);
+    const item = new vscode.TreeItem(element.aliasName, vscode.TreeItemCollapsibleState.None);
     item.iconPath = new vscode.ThemeIcon("tag");
     item.command = {
       command: "helmingway.openPreview",
