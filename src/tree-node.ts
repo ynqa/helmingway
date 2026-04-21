@@ -1,3 +1,4 @@
+import { formatChartSource } from "./chart-source";
 import type { ChartConfig, ChartTreeNode, AliasTreeNode } from "./types";
 
 /**
@@ -20,21 +21,4 @@ export function toAliasTreeNodes(chart: ChartConfig): AliasTreeNode[] {
     chartName: chart.name,
     aliasName: alias.name,
   }));
-}
-
-function formatChartSource(chartSource: ChartConfig["source"]): string {
-  switch (chartSource.kind) {
-    case "reference":
-      return chartSource.ref;
-    case "packaged":
-      return chartSource.filePath;
-    case "directory":
-      return chartSource.directoryPath;
-    case "url":
-      return chartSource.url;
-    case "repo":
-      return `${chartSource.repoUrl} (${chartSource.chart})`;
-    case "oci":
-      return chartSource.ref;
-  }
 }

@@ -2,6 +2,7 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import * as vscode from "vscode";
 import { parse } from "yaml";
+import { parseChartSource } from "./chart-source";
 import { findAliasConfig, findChartConfig } from "./config-lookup";
 import { renderHelmTemplate } from "./helm-template";
 import { toAliasTreeNodes, toChartTreeNode } from "./tree-node";
@@ -170,7 +171,7 @@ async function readHelmingwayConfig(): Promise<HelmingwayConfig> {
       helm: {
         charts: (raw.helm?.charts ?? []).map((chart) => ({
           name: chart.name,
-          source: toHelmChartSource(chart.source),
+          source: parseChartSource(chart.source),
           releaseName: chart.releaseName,
           namespace: chart.namespace,
           aliases: chart.aliases,
@@ -182,39 +183,4 @@ async function readHelmingwayConfig(): Promise<HelmingwayConfig> {
     vscode.window.showErrorMessage(`Helmingway: 設定ファイルを読み込めませんでした: ${message}`);
     return {};
   }
-}
-
-function toHelmChartSource(source: string): ChartConfig["source"] {
-  if (source.startsWith("oci://")) {
-    return {
-      kind: "oci",
-      ref: source,
-    };
-  }
-
-  if (source.startsWith("http://") || source.startsWith("https://")) {
-    return {
-      kind: "url",
-      url: source,
-    };
-  }
-
-  if (source.endsWith(".tgz")) {
-    return {
-      kind: "packaged",
-      filePath: source,
-    };
-  }
-
-  if (source.includes("/") || source.startsWith(".")) {
-    return {
-      kind: "directory",
-      directoryPath: source,
-    };
-  }
-
-  return {
-    kind: "reference",
-    ref: source,
-  };
 }

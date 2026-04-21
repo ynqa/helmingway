@@ -4,6 +4,7 @@ import * as path from "node:path";
 import { execFile as execFileCallback } from "node:child_process";
 import { promisify } from "node:util";
 import { stringify } from "yaml";
+import { resolveChartTemplateArg } from "./chart-source";
 import type { AliasConfig, ChartConfig } from "./types";
 
 const execFile = promisify(execFileCallback);
@@ -73,22 +74,5 @@ export async function renderHelmTemplate({
     await Promise.all(
       temporaryPaths.map(async (temporaryPath) => fs.rm(temporaryPath, { force: true })),
     );
-  }
-}
-
-function resolveChartTemplateArg(workspacePath: string, chart: ChartConfig): string {
-  switch (chart.source.kind) {
-    case "reference":
-      return chart.source.ref;
-    case "packaged":
-      return path.resolve(workspacePath, chart.source.filePath);
-    case "directory":
-      return path.resolve(workspacePath, chart.source.directoryPath);
-    case "url":
-      return chart.source.url;
-    case "repo":
-      return chart.source.chart;
-    case "oci":
-      return chart.source.ref;
   }
 }
