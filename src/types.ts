@@ -40,10 +40,12 @@ export type AliasConfig = {
  *    Example: `./nginx`
  * 4. absolute URL
  *    Example: `https://example.com/charts/nginx-1.2.3.tgz`
- * 5. chart reference with `--repo`
- *    Example: `chart: nginx`, `repoUrl: https://example.com/charts/`
- * 6. OCI registry reference
+ * 5. OCI registry reference
  *    Example: `oci://ghcr.io/buildfarm/buildfarm`
+ *
+ * TODO:
+ * - Support chart reference with `--repo`
+ *   Example: `chart: nginx`, `repoUrl: https://example.com/charts/`
  *
  * References:
  * - https://github.com/helm/helm/blob/v4.1.4/pkg/cmd/install.go#L111-L116
@@ -64,11 +66,6 @@ export type HelmChartSource =
   | {
       kind: "url";
       url: string;
-    }
-  | {
-      kind: "repo";
-      repoUrl: string;
-      chart: string;
     }
   | {
       kind: "oci";
