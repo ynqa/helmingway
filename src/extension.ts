@@ -43,24 +43,25 @@ export function activate(context: vscode.ExtensionContext) {
   console.log("Helmingway extension is now active.");
 
   const provider = new HelmingwayPreviewProvider();
+  const treeView = vscode.window.createTreeView("helmingway.preview", {
+    treeDataProvider: provider,
+  });
   previewDocumentProvider = new HelmingwayPreviewDocumentProvider();
+  let hasInitializedPreview = false;
+
   context.subscriptions.push(
-    vscode.window.registerTreeDataProvider("helmingway.preview", provider),
+    treeView,
     vscode.workspace.registerTextDocumentContentProvider("helmingway-preview", previewDocumentProvider),
     vscode.commands.registerCommand("helmingway.openPreview", openPreview),
-    vscode.commands.registerCommand("helmingway.refresh", async () => {
-      const workspaceFolder = getPrimaryWorkspaceFolder();
-      if (!workspaceFolder) {
+    vscode.commands.registerCommand("helmingway.refresh", () => runPreviewRefresh(provider)),
+    // Warm the preview cache once, when the Helmingway view is first revealed.
+    treeView.onDidChangeVisibility(async (event) => {
+      if (!event.visible || hasInitializedPreview) {
         return;
       }
 
-      currentConfig = await readHelmingwayConfig();
-      await refreshPreview({
-        provider,
-        workspacePath: workspaceFolder.uri.fsPath,
-        config: currentConfig,
-        cache: previewCache,
-      });
+      hasInitializedPreview = true;
+      await runPreviewRefresh(provider);
     }),
   );
 }
@@ -172,6 +173,21 @@ async function openPreview(node: Extract<HelmingwayTreeNode, { type: "alias" }>)
   await vscode.window.showTextDocument(document, {
     preview: true,
     viewColumn: vscode.window.activeTextEditor?.viewColumn,
+  });
+}
+
+async function runPreviewRefresh(provider: HelmingwayPreviewProvider): Promise<void> {
+  const workspaceFolder = getPrimaryWorkspaceFolder();
+  if (!workspaceFolder) {
+    return;
+  }
+
+  currentConfig = await readHelmingwayConfig();
+  await refreshPreview({
+    provider,
+    workspacePath: workspaceFolder.uri.fsPath,
+    config: currentConfig,
+    cache: previewCache,
   });
 }
 
