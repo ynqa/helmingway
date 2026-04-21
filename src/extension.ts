@@ -2,10 +2,14 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import * as vscode from "vscode";
 import { parse } from "yaml";
-import type { ChartConfig, HelmingwayConfig, HelmingwayTreeNode } from "./types";
+import { findAliasConfig, findChartConfig } from "./config-lookup";
+import { renderHelmTemplate } from "./helm-template";
 import { toAliasTreeNodes, toChartTreeNode } from "./tree-node";
+import type { ChartConfig, HelmingwayConfig, HelmingwayTreeNode } from "./types";
+import { getPrimaryWorkspaceFolder } from "./vscode-workspace";
 
 let previewDocumentProvider: HelmingwayPreviewDocumentProvider;
+let currentConfig: HelmingwayConfig = {};
 
 /**
  * Provide read-only preview content through `helmingway-preview` virtual document scheme.
@@ -44,7 +48,6 @@ export function deactivate() {}
  * Provide Helmingway sidebar tree shown in VS Code Side View.
  */
 class HelmingwayPreviewProvider implements vscode.TreeDataProvider<HelmingwayTreeNode> {
-  private charts: ChartConfig[] = [];
   /**
    * Build each row in the tree.
    *
@@ -79,13 +82,12 @@ class HelmingwayPreviewProvider implements vscode.TreeDataProvider<HelmingwayTre
 
   async getChildren(element?: HelmingwayTreeNode): Promise<HelmingwayTreeNode[]> {
     if (!element) {
-      const config = await readHelmingwayConfig();
-      this.charts = config.helm?.charts ?? [];
-      return this.charts.map(toChartTreeNode);
+      currentConfig = await readHelmingwayConfig();
+      return (currentConfig.helm?.charts ?? []).map(toChartTreeNode);
     }
 
     if (element.type === "chart") {
-      const chart = this.charts.find((chart) => chart.name === element.chartName);
+      const chart = (currentConfig.helm?.charts ?? []).find((chart) => chart.name === element.chartName);
       return chart ? toAliasTreeNodes(chart) : [];
     }
 
@@ -101,12 +103,32 @@ async function openPreview(node: Extract<HelmingwayTreeNode, { type: "alias" }>)
     return;
   }
 
-  const content = [
-    "# Helmingway Preview",
-    `alias: ${node.aliasName}`,
-    "",
-    "preview coming soon",
-  ].join("\n");
+  const workspaceFolder = getPrimaryWorkspaceFolder();
+  if (!workspaceFolder) {
+    return;
+  }
+
+  const chart = findChartConfig(currentConfig, node.chartName);
+  const alias = findAliasConfig(currentConfig, node.chartName, node.aliasName);
+  if (!chart || !alias) {
+    vscode.window.showErrorMessage("Helmingway: preview 対象の設定が見つかりませんでした。");
+    return;
+  }
+
+  let content: string;
+
+  try {
+    content = await renderHelmTemplate({
+      workspacePath: workspaceFolder.uri.fsPath,
+      chart,
+      alias,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    vscode.window.showErrorMessage(`Helmingway: ${message}`);
+    return;
+  }
+
   const uri = vscode.Uri.from({
     scheme: "helmingway-preview",
     path: `/${node.aliasName}.yaml`,
@@ -128,9 +150,8 @@ async function openPreview(node: Extract<HelmingwayTreeNode, { type: "alias" }>)
  */
 async function readHelmingwayConfig(): Promise<HelmingwayConfig> {
   // TODO: Support reading helmingway.yaml from multiple VS Code workspace folders.
-  const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+  const workspaceFolder = getPrimaryWorkspaceFolder();
   if (!workspaceFolder) {
-    vscode.window.showInformationMessage("Helmingway: ワークスペースを開いてください。");
     return {};
   }
 
