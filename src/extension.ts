@@ -94,7 +94,7 @@ async function openPreview(
 
   await vscode.window.showTextDocument(document, {
     preview: true,
-    viewColumn: vscode.ViewColumn.Beside,
+    viewColumn: vscode.window.activeTextEditor?.viewColumn,
   });
 }
 
