@@ -15,8 +15,32 @@
       {
         "command": "helmingway.openPreview",
         "title": "Helmingway: Open Preview"
+      },
+      {
+        "command": "helmingway.refresh",
+        "title": "Helmingway: Refresh",
+        "icon": "$(refresh)"
       }
     ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "helmingway.openPreview",
+          "when": "false"
+        },
+        {
+          "command": "helmingway.refresh",
+          "when": "false"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "helmingway.refresh",
+          "when": "view == helmingway.preview",
+          "group": "navigation"
+        }
+      ]
+    },
     "viewsContainers": {
       "activitybar": [
         {

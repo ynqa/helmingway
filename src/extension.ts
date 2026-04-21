@@ -45,6 +45,7 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.window.registerTreeDataProvider("helmingway.preview", provider),
     vscode.workspace.registerTextDocumentContentProvider("helmingway-preview", previewDocumentProvider),
     vscode.commands.registerCommand("helmingway.openPreview", openPreview),
+    vscode.commands.registerCommand("helmingway.refresh", () => provider.refresh()),
   );
 }
 
@@ -54,6 +55,14 @@ export function deactivate() {}
  * Provide Helmingway sidebar tree shown in VS Code Side View.
  */
 class HelmingwayPreviewProvider implements vscode.TreeDataProvider<HelmingwayTreeNode> {
+  private readonly onDidChangeTreeDataEmitter = new vscode.EventEmitter<HelmingwayTreeNode | undefined>();
+
+  readonly onDidChangeTreeData = this.onDidChangeTreeDataEmitter.event;
+
+  refresh(): void {
+    this.onDidChangeTreeDataEmitter.fire(undefined);
+  }
+
   /**
    * Build each row in the tree.
    *
