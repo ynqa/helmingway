@@ -161,7 +161,7 @@ async function openPreview(node: Extract<HelmingwayTreeNode, { type: "alias" }>)
   const document = await vscode.workspace.openTextDocument(uri);
   await vscode.languages.setTextDocumentLanguage(document, "yaml");
   await vscode.window.showTextDocument(document, {
-    preview: true,
+    preview: false,
     viewColumn: vscode.window.activeTextEditor?.viewColumn,
   });
 }
