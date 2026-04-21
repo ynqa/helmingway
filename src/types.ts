@@ -4,12 +4,22 @@ export type HelmingwayConfig = {
   };
 };
 
+export type RawHelmingwayConfig = Omit<HelmingwayConfig, "helm"> & {
+  helm?: {
+    charts?: RawChartConfig[];
+  };
+};
+
 export type ChartConfig = {
   name: string;
-  path: string;
+  source: HelmChartSource;
   releaseName?: string;
   namespace?: string;
   aliases?: AliasConfig[];
+};
+
+export type RawChartConfig = Omit<ChartConfig, "source"> & {
+  source: string;
 };
 
 export type AliasConfig = {

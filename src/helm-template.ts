@@ -22,7 +22,7 @@ export async function renderHelmTemplate({
   chart,
   alias,
 }: RenderHelmTemplateOptions): Promise<string> {
-  const chartPath = path.resolve(workspacePath, chart.path);
+  const chartPath = resolveChartTemplateArg(workspacePath, chart);
   const args = ["template", chart.releaseName ?? chart.name, chartPath];
   const temporaryPaths: string[] = [];
 
@@ -73,5 +73,22 @@ export async function renderHelmTemplate({
     await Promise.all(
       temporaryPaths.map(async (temporaryPath) => fs.rm(temporaryPath, { force: true })),
     );
+  }
+}
+
+function resolveChartTemplateArg(workspacePath: string, chart: ChartConfig): string {
+  switch (chart.source.kind) {
+    case "reference":
+      return chart.source.ref;
+    case "packaged":
+      return path.resolve(workspacePath, chart.source.filePath);
+    case "directory":
+      return path.resolve(workspacePath, chart.source.directoryPath);
+    case "url":
+      return chart.source.url;
+    case "repo":
+      return chart.source.chart;
+    case "oci":
+      return chart.source.ref;
   }
 }

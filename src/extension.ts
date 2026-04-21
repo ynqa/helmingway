@@ -5,7 +5,12 @@ import { parse } from "yaml";
 import { findAliasConfig, findChartConfig } from "./config-lookup";
 import { renderHelmTemplate } from "./helm-template";
 import { toAliasTreeNodes, toChartTreeNode } from "./tree-node";
-import type { ChartConfig, HelmingwayConfig, HelmingwayTreeNode } from "./types";
+import type {
+  ChartConfig,
+  HelmingwayConfig,
+  HelmingwayTreeNode,
+  RawHelmingwayConfig,
+} from "./types";
 import { getPrimaryWorkspaceFolder } from "./vscode-workspace";
 
 let previewDocumentProvider: HelmingwayPreviewDocumentProvider;
@@ -159,10 +164,57 @@ async function readHelmingwayConfig(): Promise<HelmingwayConfig> {
 
   try {
     const content = await fs.readFile(configPath, "utf8");
-    return parse(content) as HelmingwayConfig;
+    const raw = parse(content) as RawHelmingwayConfig;
+
+    return {
+      helm: {
+        charts: (raw.helm?.charts ?? []).map((chart) => ({
+          name: chart.name,
+          source: toHelmChartSource(chart.source),
+          releaseName: chart.releaseName,
+          namespace: chart.namespace,
+          aliases: chart.aliases,
+        })),
+      },
+    };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     vscode.window.showErrorMessage(`Helmingway: 設定ファイルを読み込めませんでした: ${message}`);
     return {};
   }
+}
+
+function toHelmChartSource(source: string): ChartConfig["source"] {
+  if (source.startsWith("oci://")) {
+    return {
+      kind: "oci",
+      ref: source,
+    };
+  }
+
+  if (source.startsWith("http://") || source.startsWith("https://")) {
+    return {
+      kind: "url",
+      url: source,
+    };
+  }
+
+  if (source.endsWith(".tgz")) {
+    return {
+      kind: "packaged",
+      filePath: source,
+    };
+  }
+
+  if (source.includes("/") || source.startsWith(".")) {
+    return {
+      kind: "directory",
+      directoryPath: source,
+    };
+  }
+
+  return {
+    kind: "reference",
+    ref: source,
+  };
 }

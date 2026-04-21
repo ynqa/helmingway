@@ -4,7 +4,7 @@ helm:
   charts:
   - name: example
     # Chart.yaml を含む chart ルートへのパスです。
-    path: ./charts/example
+    source: ./charts/example
     # alias で上書きしない場合に使う既定の release name です。
     releaseName: example
     # alias で上書きしない場合に使う既定の namespace です。
