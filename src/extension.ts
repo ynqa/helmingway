@@ -6,6 +6,7 @@ import { parseChartSource } from "./chart-source";
 import { findAliasConfig, findChartConfig } from "./config-lookup";
 import { renderHelmTemplate } from "./helm-template";
 import { AliasRenderStore } from "./alias-render-store";
+import { aliasRenderStatusPresentation } from "./alias-render-status";
 import { refreshPreview } from "./preview-refresh";
 import { toAliasTreeNodes, toChartTreeNode } from "./tree-node";
 import type {
@@ -42,7 +43,7 @@ class HelmingwayPreviewDocumentProvider implements vscode.TextDocumentContentPro
 export function activate(context: vscode.ExtensionContext) {
   console.log("Helmingway extension is now active.");
 
-  const provider = new HelmingwayPreviewProvider();
+  const provider = new HelmingwayPreviewProvider(previewCache);
   const treeView = vscode.window.createTreeView("helmingway.preview", {
     treeDataProvider: provider,
   });
@@ -74,6 +75,8 @@ export function deactivate() {}
 export class HelmingwayPreviewProvider implements vscode.TreeDataProvider<HelmingwayTreeNode> {
   private readonly onDidChangeTreeDataEmitter = new vscode.EventEmitter<HelmingwayTreeNode | undefined>();
 
+  constructor(private readonly renderStore: AliasRenderStore) {}
+
   readonly onDidChangeTreeData = this.onDidChangeTreeDataEmitter.event;
 
   refresh(): void {
@@ -82,16 +85,6 @@ export class HelmingwayPreviewProvider implements vscode.TreeDataProvider<Helmin
 
   /**
    * Build each row in the tree.
-   *
-   * Current UI example:
-   *
-   *   ▾ package my-chart    ./charts/my-chart
-   *       tag dev
-   *       tag staging
-   *       tag prod
-   *
-   * ThemeIcon reference:
-   * - https://code.visualstudio.com/api/references/icons-in-labels
    */
   getTreeItem(element: HelmingwayTreeNode): vscode.TreeItem {
     if (element.type === "chart") {
@@ -103,7 +96,14 @@ export class HelmingwayPreviewProvider implements vscode.TreeDataProvider<Helmin
     }
 
     const item = new vscode.TreeItem(element.aliasName, vscode.TreeItemCollapsibleState.None);
-    item.iconPath = new vscode.ThemeIcon("tag");
+    const entry = this.renderStore.get(element.chartName, element.aliasName);
+    const status = entry?.status ?? "idle";
+    const presentation = aliasRenderStatusPresentation[status];
+    item.iconPath = presentation.icon;
+    item.description = presentation.description;
+    if (entry?.errorMessage) {
+      item.tooltip = entry.errorMessage;
+    }
     item.command = {
       command: "helmingway.openPreview",
       title: "Open Preview",

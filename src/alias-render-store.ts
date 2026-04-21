@@ -1,12 +1,15 @@
 import type { HelmingwayConfig } from "./types";
+import type { AliasRenderStatus } from "./alias-render-status";
 
 export type AliasRenderEntry = {
   version: number;
+  status: AliasRenderStatus;
   content?: string;
+  errorMessage?: string;
 };
 
 /**
- * Store rendered YAML by chart/alias pair.
+ * Store rendered YAML and render state by chart/alias pair.
  */
 export class AliasRenderStore {
   private readonly entries = new Map<string, AliasRenderEntry>();
@@ -18,6 +21,7 @@ export class AliasRenderStore {
     this.entries.set(key, {
       version: nextVersion,
       content: this.entries.get(key)?.content,
+      status: "rendering",
     });
 
     return nextVersion;
@@ -32,7 +36,23 @@ export class AliasRenderStore {
 
     this.entries.set(key, {
       version,
+      status: "rendered",
       content,
+    });
+  }
+
+  fail(chartName: string, aliasName: string, version: number, errorMessage: string): void {
+    const key = toPreviewCacheKey(chartName, aliasName);
+    const current = this.entries.get(key);
+    if (!current || current.version !== version) {
+      return;
+    }
+
+    this.entries.set(key, {
+      version,
+      status: "failed",
+      content: current.content,
+      errorMessage,
     });
   }
 
@@ -50,6 +70,15 @@ export class AliasRenderStore {
     for (const key of this.entries.keys()) {
       if (!activeKeys.has(key)) {
         this.entries.delete(key);
+      }
+    }
+
+    for (const key of activeKeys) {
+      if (!this.entries.has(key)) {
+        this.entries.set(key, {
+          version: 0,
+          status: "idle",
+        });
       }
     }
   }

@@ -23,8 +23,8 @@ export async function refreshPreview({
   config,
   cache,
 }: RefreshPreviewOptions): Promise<void> {
-  provider.refresh();
   cache.prune(config);
+  provider.refresh();
 
   const renderTargets = (config.helm?.charts ?? []).flatMap((chart) =>
     (chart.aliases ?? []).map((alias) => ({
@@ -48,6 +48,7 @@ export async function refreshPreview({
 
       for (const target of renderTargets) {
         const version = cache.begin(target.chart.name, target.alias.name);
+        provider.refresh();
 
         progress.report({
           increment: 100 / renderTargets.length,
@@ -61,8 +62,11 @@ export async function refreshPreview({
             alias: target.alias,
           });
           cache.set(target.chart.name, target.alias.name, version, content);
+          provider.refresh();
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
+          cache.fail(target.chart.name, target.alias.name, version, message);
+          provider.refresh();
           failedAliases.push(`${target.chart.name}/${target.alias.name}: ${message}`);
         }
       }
