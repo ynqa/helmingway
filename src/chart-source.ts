@@ -1,4 +1,3 @@
-import * as path from "node:path";
 import type { ChartConfig, HelmChartSource } from "./types";
 
 /**
@@ -54,23 +53,5 @@ export function formatChartSource(chartSource: ChartConfig["source"]): string {
       return chartSource.url;
     case "oci":
       return chartSource.ref;
-  }
-}
-
-/**
- * Resolve helm chart source into the chart argument passed to `helm template`.
- */
-export function resolveChartTemplateArg(workspacePath: string, chart: ChartConfig): string {
-  switch (chart.source.kind) {
-    case "reference":
-      return chart.source.ref;
-    case "packaged":
-      return path.resolve(workspacePath, chart.source.filePath);
-    case "directory":
-      return path.resolve(workspacePath, chart.source.directoryPath);
-    case "url":
-      return chart.source.url;
-    case "oci":
-      return chart.source.ref;
   }
 }

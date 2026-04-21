@@ -4,7 +4,6 @@ import * as path from "node:path";
 import { execFile as execFileCallback } from "node:child_process";
 import { promisify } from "node:util";
 import { stringify } from "yaml";
-import { resolveChartTemplateArg } from "./chart-source";
 import type { AliasConfig, ChartConfig } from "./types";
 
 const execFile = promisify(execFileCallback);
@@ -33,7 +32,7 @@ export async function renderHelmTemplate({
     }
 
     for (const valueFile of alias.valueFiles ?? []) {
-      args.push("--values", path.resolve(chartPath, valueFile));
+      args.push("--values", resolveValuesFilePath(workspacePath, valueFile));
     }
 
     // If there are inline values, write them to a temporary file and add it to the arguments.
@@ -75,4 +74,29 @@ export async function renderHelmTemplate({
       temporaryPaths.map(async (temporaryPath) => fs.rm(temporaryPath, { force: true })),
     );
   }
+}
+
+/**
+ * Resolve chart source into the chart argument passed to `helm template`.
+ */
+function resolveChartTemplateArg(workspacePath: string, chart: ChartConfig): string {
+  switch (chart.source.kind) {
+    case "reference":
+      return chart.source.ref;
+    case "packaged":
+      return path.resolve(workspacePath, chart.source.filePath);
+    case "directory":
+      return path.resolve(workspacePath, chart.source.directoryPath);
+    case "url":
+      return chart.source.url;
+    case "oci":
+      return chart.source.ref;
+  }
+}
+
+/**
+ * Resolve alias values file path from the workspace root.
+ */
+function resolveValuesFilePath(workspacePath: string, valueFile: string): string {
+  return path.resolve(workspacePath, valueFile);
 }
