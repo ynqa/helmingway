@@ -3,8 +3,6 @@ import * as path from "node:path";
 import * as vscode from "vscode";
 import { parse } from "yaml";
 import { parseChartSource } from "./chart-source";
-import { findAliasConfig, findChartConfig } from "./config-lookup";
-import { renderHelmTemplate } from "./helm-template";
 import { AliasRenderStore } from "./alias-render-store";
 import { aliasRenderStatusPresentation } from "./alias-render-status";
 import { refreshPreview } from "./preview-refresh";
@@ -135,29 +133,21 @@ async function openPreview(node: Extract<HelmingwayTreeNode, { type: "alias" }>)
     return;
   }
 
-  const workspaceFolder = getPrimaryWorkspaceFolder();
-  if (!workspaceFolder) {
+  const entry = previewCache.get(node.chartName, node.aliasName);
+  if (!entry || entry.status === "idle") {
+    vscode.window.showInformationMessage("Helmingway: preview はまだレンダリングされていません。Refresh を実行してください。");
     return;
   }
-
-  const chart = findChartConfig(currentConfig, node.chartName);
-  const alias = findAliasConfig(currentConfig, node.chartName, node.aliasName);
-  if (!chart || !alias) {
-    vscode.window.showErrorMessage("Helmingway: preview 対象の設定が見つかりませんでした。");
+  if (entry.status === "rendering") {
+    vscode.window.showInformationMessage("Helmingway: preview はレンダリング中です。完了後にもう一度開いてください。");
     return;
   }
-
-  let content: string;
-
-  try {
-    content = await renderHelmTemplate({
-      workspacePath: workspaceFolder.uri.fsPath,
-      chart,
-      alias,
-    });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    vscode.window.showErrorMessage(`Helmingway: ${message}`);
+  if (entry.status === "failed") {
+    vscode.window.showErrorMessage(`Helmingway: preview のレンダリングに失敗しました: ${entry.errorMessage ?? "unknown error"}`);
+    return;
+  }
+  if (entry.content === undefined) {
+    vscode.window.showErrorMessage("Helmingway: preview のキャッシュ内容が見つかりませんでした。Refresh を実行してください。");
     return;
   }
 
@@ -166,7 +156,7 @@ async function openPreview(node: Extract<HelmingwayTreeNode, { type: "alias" }>)
     path: `/${node.aliasName}.yaml`,
   });
 
-  previewDocumentProvider.setContent(uri, content);
+  previewDocumentProvider.setContent(uri, entry.content);
 
   const document = await vscode.workspace.openTextDocument(uri);
   await vscode.languages.setTextDocumentLanguage(document, "yaml");
