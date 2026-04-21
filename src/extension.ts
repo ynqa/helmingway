@@ -5,6 +5,7 @@ import { parse } from "yaml";
 import { parseChartSource } from "./chart-source";
 import { findAliasConfig, findChartConfig } from "./config-lookup";
 import { renderHelmTemplate } from "./helm-template";
+import { refreshPreview } from "./preview-refresh";
 import { toAliasTreeNodes, toChartTreeNode } from "./tree-node";
 import type {
   ChartConfig,
@@ -45,7 +46,19 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.window.registerTreeDataProvider("helmingway.preview", provider),
     vscode.workspace.registerTextDocumentContentProvider("helmingway-preview", previewDocumentProvider),
     vscode.commands.registerCommand("helmingway.openPreview", openPreview),
-    vscode.commands.registerCommand("helmingway.refresh", () => provider.refresh()),
+    vscode.commands.registerCommand("helmingway.refresh", async () => {
+      const workspaceFolder = getPrimaryWorkspaceFolder();
+      if (!workspaceFolder) {
+        return;
+      }
+
+      currentConfig = await readHelmingwayConfig();
+      await refreshPreview({
+        provider,
+        workspacePath: workspaceFolder.uri.fsPath,
+        config: currentConfig,
+      });
+    }),
   );
 }
 
@@ -54,7 +67,7 @@ export function deactivate() {}
 /**
  * Provide Helmingway sidebar tree shown in VS Code Side View.
  */
-class HelmingwayPreviewProvider implements vscode.TreeDataProvider<HelmingwayTreeNode> {
+export class HelmingwayPreviewProvider implements vscode.TreeDataProvider<HelmingwayTreeNode> {
   private readonly onDidChangeTreeDataEmitter = new vscode.EventEmitter<HelmingwayTreeNode | undefined>();
 
   readonly onDidChangeTreeData = this.onDidChangeTreeDataEmitter.event;
