@@ -46,7 +46,7 @@ export async function refreshPreview({
   await vscode.window.withProgress(
     {
       location: vscode.ProgressLocation.Notification,
-      title: "Helmingway: helm template を再実行しています",
+      title: "Helmingway: helm template を実行しています",
       cancellable: false,
     },
     async (progress) => {
@@ -91,7 +91,7 @@ export async function refreshPreview({
 
       if (failedAliases.length === 0) {
         vscode.window.showInformationMessage(
-          `Helmingway: ${renderTargets.length} 件の alias で helm template を再実行しました。`,
+          `Helmingway: ${renderTargets.length} 件の alias で helm template を実行しました。`,
         );
         return;
       }
