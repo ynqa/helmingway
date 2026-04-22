@@ -6,7 +6,7 @@ import * as vscode from "vscode";
 export function getPrimaryWorkspaceFolder(): vscode.WorkspaceFolder | undefined {
   const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
   if (!workspaceFolder) {
-    vscode.window.showInformationMessage("Helmingway: ワークスペースを開いてください。");
+    vscode.window.showInformationMessage("Helmingway: Open a workspace folder first.");
     return undefined;
   }
 

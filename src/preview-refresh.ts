@@ -46,13 +46,13 @@ export async function refreshPreview({
   await vscode.window.withProgress(
     {
       location: vscode.ProgressLocation.Notification,
-      title: "Helmingway: helm template を実行しています",
+      title: "Helmingway: Running helm template",
       cancellable: false,
     },
     async (progress) => {
       let completedCount = 0;
 
-    const failures: Array<RefreshPreviewFailure | undefined> = await Promise.all(
+      const failures: Array<RefreshPreviewFailure | undefined> = await Promise.all(
         renderTargets.map(async (target) => {
           const version = cache.begin(target.chart.name, target.alias.name);
           provider.refresh();
@@ -91,7 +91,7 @@ export async function refreshPreview({
 
       if (failedAliases.length === 0) {
         vscode.window.showInformationMessage(
-          `Helmingway: ${renderTargets.length} 件の alias で helm template を実行しました。`,
+          `Helmingway: Ran helm template for ${renderTargets.length} aliases.`,
         );
         return;
       }
@@ -101,9 +101,9 @@ export async function refreshPreview({
         .map((failure) => `${failure.chartName}/${failure.aliasName}: ${failure.message}`)
         .join(" / ");
       const omittedCount = failedAliases.length - 3;
-      const omittedMessage = omittedCount > 0 ? ` / ほか ${omittedCount} 件` : "";
+      const omittedMessage = omittedCount > 0 ? ` / ${omittedCount} more` : "";
       vscode.window.showErrorMessage(
-        `Helmingway: ${failedAliases.length} 件の alias で helm template に失敗しました: ${failedSummary}${omittedMessage}`,
+        `Helmingway: helm template failed for ${failedAliases.length} aliases: ${failedSummary}${omittedMessage}`,
       );
     },
   );

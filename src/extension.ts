@@ -135,19 +135,19 @@ async function openPreview(node: Extract<HelmingwayTreeNode, { type: "alias" }>)
 
   const entry = previewCache.get(node.chartName, node.aliasName);
   if (!entry || entry.status === "idle") {
-    vscode.window.showInformationMessage("Helmingway: preview はまだレンダリングされていません。Refresh を実行してください。");
+    vscode.window.showInformationMessage("Helmingway: Preview is not rendered yet. Run Refresh first.");
     return;
   }
   if (entry.status === "rendering") {
-    vscode.window.showInformationMessage("Helmingway: preview はレンダリング中です。完了後にもう一度開いてください。");
+    vscode.window.showInformationMessage("Helmingway: Preview is still rendering. Try opening it again after it completes.");
     return;
   }
   if (entry.status === "failed") {
-    vscode.window.showErrorMessage(`Helmingway: preview のレンダリングに失敗しました: ${entry.errorMessage ?? "unknown error"}`);
+    vscode.window.showErrorMessage(`Helmingway: Failed to render preview: ${entry.errorMessage ?? "unknown error"}`);
     return;
   }
   if (entry.content === undefined) {
-    vscode.window.showErrorMessage("Helmingway: preview のキャッシュ内容が見つかりませんでした。Refresh を実行してください。");
+    vscode.window.showErrorMessage("Helmingway: Preview cache content was not found. Run Refresh first.");
     return;
   }
 
@@ -211,7 +211,7 @@ async function readHelmingwayConfig(): Promise<HelmingwayConfig> {
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    vscode.window.showErrorMessage(`Helmingway: 設定ファイルを読み込めませんでした: ${message}`);
+    vscode.window.showErrorMessage(`Helmingway: Failed to read config file: ${message}`);
     return {};
   }
 }

@@ -60,11 +60,11 @@ export async function renderHelmTemplate({
       };
 
       if (maybeExecError.code === "ENOENT") {
-        throw new Error("`helm` コマンドが見つかりません。");
+        throw new Error("`helm` command was not found.");
       }
 
       throw new Error(
-        `helm template の実行に失敗しました: ${maybeExecError.stderr?.trim() || error.message}`,
+        `Failed to run helm template: ${maybeExecError.stderr?.trim() || error.message}`,
       );
     }
 
