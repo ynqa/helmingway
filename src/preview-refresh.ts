@@ -7,6 +7,12 @@ type RefreshableProvider = {
   refresh(): void;
 };
 
+type RefreshPreviewFailure = {
+  chartName: string;
+  aliasName: string;
+  message: string;
+};
+
 type RefreshPreviewOptions = {
   provider: RefreshableProvider;
   workspacePath: string;
@@ -46,7 +52,7 @@ export async function refreshPreview({
     async (progress) => {
       let completedCount = 0;
 
-      const results = await Promise.all(
+    const failures: Array<RefreshPreviewFailure | undefined> = await Promise.all(
         renderTargets.map(async (target) => {
           const version = cache.begin(target.chart.name, target.alias.name);
           provider.refresh();
@@ -64,7 +70,11 @@ export async function refreshPreview({
             const message = error instanceof Error ? error.message : String(error);
             cache.fail(target.chart.name, target.alias.name, version, message);
             provider.refresh();
-            return `${target.chart.name}/${target.alias.name}: ${message}`;
+            return {
+              chartName: target.chart.name,
+              aliasName: target.alias.name,
+              message,
+            } satisfies RefreshPreviewFailure;
           } finally {
             completedCount += 1;
             progress.report({
@@ -75,7 +85,9 @@ export async function refreshPreview({
         }),
       );
 
-      const failedAliases = results.filter((result) => result !== undefined);
+      const failedAliases = failures.filter(
+        (failure): failure is RefreshPreviewFailure => failure !== undefined,
+      );
 
       if (failedAliases.length === 0) {
         vscode.window.showInformationMessage(
@@ -84,7 +96,10 @@ export async function refreshPreview({
         return;
       }
 
-      const failedSummary = failedAliases.slice(0, 3).join(" / ");
+      const failedSummary = failedAliases
+        .slice(0, 3)
+        .map((failure) => `${failure.chartName}/${failure.aliasName}: ${failure.message}`)
+        .join(" / ");
       const omittedCount = failedAliases.length - 3;
       const omittedMessage = omittedCount > 0 ? ` / ほか ${omittedCount} 件` : "";
       vscode.window.showErrorMessage(
