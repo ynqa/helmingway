@@ -14,7 +14,6 @@ import type {
 } from "./types";
 import { getPrimaryWorkspaceFolder } from "./vscode-workspace";
 
-let currentConfig: HelmingwayConfig = {};
 const previewCache = new AliasRenderStore();
 
 export function activate(context: vscode.ExtensionContext) {
@@ -90,6 +89,7 @@ class HelmingwayPreviewDocumentProvider implements vscode.TextDocumentContentPro
  */
 class HelmingwayTreeDataProvider implements vscode.TreeDataProvider<HelmingwayTreeNode> {
   private readonly onDidChangeTreeDataEmitter = new vscode.EventEmitter<HelmingwayTreeNode | undefined>();
+  private currentConfig: HelmingwayConfig = {};
 
   constructor(private readonly renderStore: AliasRenderStore) {}
 
@@ -97,6 +97,11 @@ class HelmingwayTreeDataProvider implements vscode.TreeDataProvider<HelmingwayTr
 
   refresh(): void {
     this.onDidChangeTreeDataEmitter.fire(undefined);
+  }
+
+  async refreshConfig(): Promise<HelmingwayConfig> {
+    this.currentConfig = await readHelmingwayConfig();
+    return this.currentConfig;
   }
 
   /**
@@ -133,12 +138,12 @@ class HelmingwayTreeDataProvider implements vscode.TreeDataProvider<HelmingwayTr
 
   async getChildren(element?: HelmingwayTreeNode): Promise<HelmingwayTreeNode[]> {
     if (!element) {
-      currentConfig = await readHelmingwayConfig();
+      const currentConfig = await this.refreshConfig();
       return (currentConfig.helm?.charts ?? []).map(toChartTreeNode);
     }
 
     if (element.type === "chart") {
-      const chart = (currentConfig.helm?.charts ?? []).find((chart) => chart.name === element.chartName);
+      const chart = (this.currentConfig.helm?.charts ?? []).find((chart) => chart.name === element.chartName);
       return chart ? toAliasTreeNodes(chart) : [];
     }
 
@@ -229,7 +234,7 @@ async function refreshPreview(treeDataProvider: HelmingwayTreeDataProvider): Pro
     return;
   }
 
-  currentConfig = await readHelmingwayConfig();
+  const currentConfig = await treeDataProvider.refreshConfig();
   await refreshPreviewInternal({
     provider: treeDataProvider,
     workspacePath: workspaceFolder.uri.fsPath,
