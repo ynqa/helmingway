@@ -16,7 +16,6 @@ import { getPrimaryWorkspaceFolder } from "./vscode-workspace";
 
 let currentConfig: HelmingwayConfig = {};
 const previewCache = new AliasRenderStore();
-let selectedAliases: Array<Extract<HelmingwayTreeNode, { type: "alias" }>> = [];
 
 export function activate(context: vscode.ExtensionContext) {
   console.log("Helmingway extension is now active.");
@@ -30,6 +29,7 @@ export function activate(context: vscode.ExtensionContext) {
   });
 
   let hasInitializedPreview = false;
+  let selectedAliases: Array<Extract<HelmingwayTreeNode, { type: "alias" }>> = [];
 
   context.subscriptions.push(
     treeView,
@@ -38,7 +38,7 @@ export function activate(context: vscode.ExtensionContext) {
       openPreview(previewDocumentProvider, node),
     ),
     vscode.commands.registerCommand("helmingway.compareSelectedAliases", () =>
-      compareSelectedAliases(previewDocumentProvider),
+      compareSelectedAliases(previewDocumentProvider, selectedAliases),
     ),
     vscode.commands.registerCommand("helmingway.refreshPreview", () =>
       refreshPreview(treeDataProvider),
@@ -179,6 +179,7 @@ async function openPreview(
  */
 async function compareSelectedAliases(
   previewDocumentProvider: HelmingwayPreviewDocumentProvider,
+  selectedAliases: Array<Extract<HelmingwayTreeNode, { type: "alias" }>>,
 ): Promise<void> {
   if (selectedAliases.length !== 2) {
     vscode.window.showInformationMessage("Helmingway: Select exactly two aliases to compare.");
