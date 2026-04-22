@@ -17,6 +17,10 @@
         "title": "Open Preview"
       },
       {
+        "command": "helmingway.compareSelectedAliases",
+        "title": "Compare"
+      },
+      {
         "command": "helmingway.refreshPreview",
         "title": "Refresh Preview",
         "icon": "$(refresh)"
@@ -36,6 +40,10 @@
         {
           "command": "helmingway.refreshPreview",
           "when": "false"
+        },
+        {
+          "command": "helmingway.compareSelectedAliases",
+          "when": "false"
         }
       ],
       "view/title": [
@@ -54,6 +62,10 @@
         {
           "command": "helmingway.openPreview",
           "when": "view == helmingway.preview && viewItem == alias"
+        },
+        {
+          "command": "helmingway.compareSelectedAliases",
+          "when": "view == helmingway.preview && viewItem == alias && listMultiSelection"
         }
       ]
     },

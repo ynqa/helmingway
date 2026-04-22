@@ -18,6 +18,7 @@ import { getPrimaryWorkspaceFolder } from "./vscode-workspace";
 let previewDocumentProvider: HelmingwayPreviewDocumentProvider;
 let currentConfig: HelmingwayConfig = {};
 const previewCache = new AliasRenderStore();
+let selectedAliases: Array<Extract<HelmingwayTreeNode, { type: "alias" }>> = [];
 
 /**
  * Provide read-only preview content through `helmingway-preview` virtual document scheme.
@@ -44,6 +45,7 @@ export function activate(context: vscode.ExtensionContext) {
   const provider = new HelmingwayPreviewProvider(previewCache);
   const treeView = vscode.window.createTreeView("helmingway.preview", {
     treeDataProvider: provider,
+    canSelectMany: true,
   });
   previewDocumentProvider = new HelmingwayPreviewDocumentProvider();
   let hasInitializedPreview = false;
@@ -52,8 +54,14 @@ export function activate(context: vscode.ExtensionContext) {
     treeView,
     vscode.workspace.registerTextDocumentContentProvider("helmingway-preview", previewDocumentProvider),
     vscode.commands.registerCommand("helmingway.openPreview", openPreview),
+    vscode.commands.registerCommand("helmingway.compareSelectedAliases", compareSelectedAliases),
     vscode.commands.registerCommand("helmingway.refreshPreview", () => refreshPreview(provider)),
     vscode.commands.registerCommand("helmingway.closeAllPreviews", closeAllPreviews),
+    treeView.onDidChangeSelection((event) => {
+      selectedAliases = event.selection.filter(
+        (node): node is Extract<HelmingwayTreeNode, { type: "alias" }> => node.type === "alias",
+      );
+    }),
     // Warm the preview cache once, when the Helmingway view is first revealed.
     treeView.onDidChangeVisibility(async (event) => {
       if (!event.visible || hasInitializedPreview) {
@@ -137,21 +145,8 @@ async function openPreview(node: Extract<HelmingwayTreeNode, { type: "alias" }>)
     return;
   }
 
-  const entry = previewCache.get(node.chartName, node.aliasName);
-  if (!entry || entry.status === "idle") {
-    vscode.window.showInformationMessage("Helmingway: Preview is not rendered yet. Run Refresh first.");
-    return;
-  }
-  if (entry.status === "rendering") {
-    vscode.window.showInformationMessage("Helmingway: Preview is still rendering. Try opening it again after it completes.");
-    return;
-  }
-  if (entry.status === "failed") {
-    vscode.window.showErrorMessage(`Helmingway: Failed to render preview: ${entry.errorMessage ?? "unknown error"}`);
-    return;
-  }
-  if (entry.content === undefined) {
-    vscode.window.showErrorMessage("Helmingway: Preview cache content was not found. Run Refresh first.");
+  const content = getRenderedAliasContent(node);
+  if (content === undefined) {
     return;
   }
 
@@ -160,7 +155,7 @@ async function openPreview(node: Extract<HelmingwayTreeNode, { type: "alias" }>)
     path: `/${node.aliasName}.yaml`,
   });
 
-  previewDocumentProvider.setContent(uri, entry.content);
+  previewDocumentProvider.setContent(uri, content);
 
   const document = await vscode.workspace.openTextDocument(uri);
   await vscode.languages.setTextDocumentLanguage(document, "yaml");
@@ -168,6 +163,46 @@ async function openPreview(node: Extract<HelmingwayTreeNode, { type: "alias" }>)
     preview: false,
     viewColumn: vscode.window.activeTextEditor?.viewColumn,
   });
+}
+
+/**
+ * Compare the rendered content of the two selected aliases in a diff editor.
+ */
+async function compareSelectedAliases(): Promise<void> {
+  if (selectedAliases.length !== 2) {
+    vscode.window.showInformationMessage("Helmingway: Select exactly two aliases to compare.");
+    return;
+  }
+
+  const [leftAlias, rightAlias] = selectedAliases;
+  const leftContent = getRenderedAliasContent(leftAlias);
+  if (!leftContent) {
+    return;
+  }
+
+  const rightContent = getRenderedAliasContent(rightAlias);
+  if (!rightContent) {
+    return;
+  }
+
+  const leftUri = vscode.Uri.from({
+    scheme: "helmingway-preview",
+    path: `/compare/${leftAlias.chartName}-${leftAlias.aliasName}.yaml`,
+  });
+  const rightUri = vscode.Uri.from({
+    scheme: "helmingway-preview",
+    path: `/compare/${rightAlias.chartName}-${rightAlias.aliasName}.yaml`,
+  });
+
+  previewDocumentProvider.setContent(leftUri, leftContent);
+  previewDocumentProvider.setContent(rightUri, rightContent);
+
+  await vscode.commands.executeCommand(
+    "vscode.diff",
+    leftUri,
+    rightUri,
+    `${leftAlias.aliasName} ↔ ${rightAlias.aliasName}`,
+  );
 }
 
 /**
@@ -204,6 +239,42 @@ async function closeAllPreviews(): Promise<void> {
   }
 
   await vscode.window.tabGroups.close(previewTabs);
+}
+
+/**
+ * Get the rendered content for the given alias node from the preview cache.
+ * If the content is not available, show an information or error message and return undefined.
+ */
+function getRenderedAliasContent(
+  node: Extract<HelmingwayTreeNode, { type: "alias" }>,
+): string | undefined {
+  const entry = previewCache.get(node.chartName, node.aliasName);
+  if (!entry || entry.status === "idle") {
+    vscode.window.showInformationMessage(
+      `Helmingway: ${node.chartName}/${node.aliasName} is not rendered yet. Run Refresh first.`,
+    );
+    return undefined;
+  }
+  if (entry.status === "rendering") {
+    vscode.window.showInformationMessage(
+      `Helmingway: ${node.chartName}/${node.aliasName} is still rendering.`,
+    );
+    return undefined;
+  }
+  if (entry.status === "failed") {
+    vscode.window.showErrorMessage(
+      `Helmingway: Failed to render ${node.chartName}/${node.aliasName}: ${entry.errorMessage ?? "unknown error"}`,
+    );
+    return undefined;
+  }
+  if (entry.content === undefined) {
+    vscode.window.showErrorMessage(
+      `Helmingway: Preview cache content was not found for ${node.chartName}/${node.aliasName}.`,
+    );
+    return undefined;
+  }
+
+  return entry.content;
 }
 
 /**
