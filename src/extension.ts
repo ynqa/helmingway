@@ -91,23 +91,26 @@ export class HelmingwayPreviewProvider implements vscode.TreeDataProvider<Helmin
       item.description = element.chartPath;
       item.iconPath = new vscode.ThemeIcon("package");
       return item;
+    } else if (element.type === "alias") {
+      const item = new vscode.TreeItem(element.aliasName, vscode.TreeItemCollapsibleState.None);
+      const entry = this.renderStore.get(element.chartName, element.aliasName);
+      const status = entry?.status ?? "idle";
+      const presentation = aliasRenderStatusPresentation[status];
+      item.contextValue = "alias";
+      item.iconPath = presentation.icon;
+      item.description = presentation.description;
+      if (entry?.errorMessage) {
+        item.tooltip = entry.errorMessage;
+      }
+      item.command = {
+        command: "helmingway.openPreview",
+        title: "Open Preview",
+        arguments: [element],
+      };
+      return item;
     }
 
-    const item = new vscode.TreeItem(element.aliasName, vscode.TreeItemCollapsibleState.None);
-    const entry = this.renderStore.get(element.chartName, element.aliasName);
-    const status = entry?.status ?? "idle";
-    const presentation = aliasRenderStatusPresentation[status];
-    item.iconPath = presentation.icon;
-    item.description = presentation.description;
-    if (entry?.errorMessage) {
-      item.tooltip = entry.errorMessage;
-    }
-    item.command = {
-      command: "helmingway.openPreview",
-      title: "Open Preview",
-      arguments: [element],
-    };
-    return item;
+    throw new Error(`Unhandled tree node type: ${JSON.stringify(element)}`);
   }
 
   async getChildren(element?: HelmingwayTreeNode): Promise<HelmingwayTreeNode[]> {

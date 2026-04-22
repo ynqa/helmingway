@@ -39,6 +39,12 @@
           "when": "view == helmingway.preview",
           "group": "navigation"
         }
+      ],
+      "view/item/context": [
+        {
+          "command": "helmingway.openPreview",
+          "when": "view == helmingway.preview && viewItem == alias"
+        }
       ]
     },
     "viewsContainers": {
