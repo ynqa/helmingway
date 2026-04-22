@@ -8,14 +8,12 @@ import { aliasRenderStatusPresentation } from "./alias-render-status";
 import { refreshPreview as refreshPreviewInternal } from "./preview-refresh";
 import { toAliasTreeNodes, toChartTreeNode } from "./tree-node";
 import type {
-  ChartConfig,
   HelmingwayConfig,
   HelmingwayTreeNode,
   RawHelmingwayConfig,
 } from "./types";
 import { getPrimaryWorkspaceFolder } from "./vscode-workspace";
 
-let previewDocumentProvider: HelmingwayPreviewDocumentProvider;
 let currentConfig: HelmingwayConfig = {};
 const previewCache = new AliasRenderStore();
 let selectedAliases: Array<Extract<HelmingwayTreeNode, { type: "alias" }>> = [];
@@ -23,20 +21,28 @@ let selectedAliases: Array<Extract<HelmingwayTreeNode, { type: "alias" }>> = [];
 export function activate(context: vscode.ExtensionContext) {
   console.log("Helmingway extension is now active.");
 
-  const provider = new HelmingwayPreviewProvider(previewCache);
+  const previewDocumentProvider = new HelmingwayPreviewDocumentProvider();
+  const treeDataProvider = new HelmingwayTreeDataProvider(previewCache);
+
   const treeView = vscode.window.createTreeView("helmingway.preview", {
-    treeDataProvider: provider,
+    treeDataProvider,
     canSelectMany: true,
   });
-  previewDocumentProvider = new HelmingwayPreviewDocumentProvider();
+
   let hasInitializedPreview = false;
 
   context.subscriptions.push(
     treeView,
     vscode.workspace.registerTextDocumentContentProvider("helmingway-preview", previewDocumentProvider),
-    vscode.commands.registerCommand("helmingway.openPreview", openPreview),
-    vscode.commands.registerCommand("helmingway.compareSelectedAliases", compareSelectedAliases),
-    vscode.commands.registerCommand("helmingway.refreshPreview", () => refreshPreview(provider)),
+    vscode.commands.registerCommand("helmingway.openPreview", (node) =>
+      openPreview(previewDocumentProvider, node),
+    ),
+    vscode.commands.registerCommand("helmingway.compareSelectedAliases", () =>
+      compareSelectedAliases(previewDocumentProvider),
+    ),
+    vscode.commands.registerCommand("helmingway.refreshPreview", () =>
+      refreshPreview(treeDataProvider),
+    ),
     vscode.commands.registerCommand("helmingway.closeAllPreviews", closeAllPreviews),
     treeView.onDidChangeSelection((event) => {
       selectedAliases = event.selection.filter(
@@ -50,7 +56,7 @@ export function activate(context: vscode.ExtensionContext) {
       }
 
       hasInitializedPreview = true;
-      await refreshPreview(provider);
+      await refreshPreview(treeDataProvider);
     }),
   );
 }
@@ -79,7 +85,7 @@ class HelmingwayPreviewDocumentProvider implements vscode.TextDocumentContentPro
 /**
  * Provide Helmingway sidebar tree shown in VS Code Side View.
  */
-class HelmingwayPreviewProvider implements vscode.TreeDataProvider<HelmingwayTreeNode> {
+class HelmingwayTreeDataProvider implements vscode.TreeDataProvider<HelmingwayTreeNode> {
   private readonly onDidChangeTreeDataEmitter = new vscode.EventEmitter<HelmingwayTreeNode | undefined>();
 
   constructor(private readonly renderStore: AliasRenderStore) {}
@@ -140,7 +146,10 @@ class HelmingwayPreviewProvider implements vscode.TreeDataProvider<HelmingwayTre
 /**
  * Open a preview document for the given alias node.
  */
-async function openPreview(node: Extract<HelmingwayTreeNode, { type: "alias" }>): Promise<void> {
+async function openPreview(
+  previewDocumentProvider: HelmingwayPreviewDocumentProvider,
+  node: Extract<HelmingwayTreeNode, { type: "alias" }>,
+): Promise<void> {
   if (node.type !== "alias") {
     return;
   }
@@ -168,7 +177,9 @@ async function openPreview(node: Extract<HelmingwayTreeNode, { type: "alias" }>)
 /**
  * Compare the rendered content of the two selected aliases in a diff editor.
  */
-async function compareSelectedAliases(): Promise<void> {
+async function compareSelectedAliases(
+  previewDocumentProvider: HelmingwayPreviewDocumentProvider,
+): Promise<void> {
   if (selectedAliases.length !== 2) {
     vscode.window.showInformationMessage("Helmingway: Select exactly two aliases to compare.");
     return;
@@ -208,7 +219,7 @@ async function compareSelectedAliases(): Promise<void> {
 /**
  * Refresh the preview cache and update the tree view.
  */
-async function refreshPreview(provider: HelmingwayPreviewProvider): Promise<void> {
+async function refreshPreview(treeDataProvider: HelmingwayTreeDataProvider): Promise<void> {
   const workspaceFolder = getPrimaryWorkspaceFolder();
   if (!workspaceFolder) {
     return;
@@ -216,7 +227,7 @@ async function refreshPreview(provider: HelmingwayPreviewProvider): Promise<void
 
   currentConfig = await readHelmingwayConfig();
   await refreshPreviewInternal({
-    provider,
+    provider: treeDataProvider,
     workspacePath: workspaceFolder.uri.fsPath,
     config: currentConfig,
     cache: previewCache,
