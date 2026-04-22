@@ -20,6 +20,11 @@
         "command": "helmingway.refresh",
         "title": "Helmingway: Refresh",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "helmingway.closeAllPreviews",
+        "title": "Helmingway: Close All Previews",
+        "icon": "$(close-all)"
       }
     ],
     "menus": {
@@ -38,6 +43,11 @@
           "command": "helmingway.refresh",
           "when": "view == helmingway.preview",
           "group": "navigation"
+        },
+        {
+          "command": "helmingway.closeAllPreviews",
+          "when": "view == helmingway.preview",
+          "group": "navigation@1"
         }
       ],
       "view/item/context": [

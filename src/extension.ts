@@ -53,6 +53,7 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.workspace.registerTextDocumentContentProvider("helmingway-preview", previewDocumentProvider),
     vscode.commands.registerCommand("helmingway.openPreview", openPreview),
     vscode.commands.registerCommand("helmingway.refresh", () => runPreviewRefresh(provider)),
+    vscode.commands.registerCommand("helmingway.closeAllPreviews", closeAllPreviews),
     // Warm the preview cache once, when the Helmingway view is first revealed.
     treeView.onDidChangeVisibility(async (event) => {
       if (!event.visible || hasInitializedPreview) {
@@ -182,6 +183,24 @@ async function runPreviewRefresh(provider: HelmingwayPreviewProvider): Promise<v
     config: currentConfig,
     cache: previewCache,
   });
+}
+
+/**
+ * Close only Helmingway preview tabs and leave all other editor tabs untouched.
+ */
+async function closeAllPreviews(): Promise<void> {
+  const previewTabs = vscode.window.tabGroups.all
+    .flatMap((group) => group.tabs)
+    .filter((tab) => {
+      const input = tab.input;
+      return input instanceof vscode.TabInputText && input.uri.scheme === "helmingway-preview";
+    });
+
+  if (previewTabs.length === 0) {
+    return;
+  }
+
+  await vscode.window.tabGroups.close(previewTabs);
 }
 
 /**
