@@ -46,7 +46,7 @@ export async function refreshPreview({
   await vscode.window.withProgress(
     {
       location: vscode.ProgressLocation.Notification,
-      title: "Helmingway: Running helm template",
+      title: "Running helm template",
       cancellable: false,
     },
     async (progress) => {

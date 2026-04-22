@@ -5,7 +5,7 @@ import { parse } from "yaml";
 import { parseChartSource } from "./chart-source";
 import { AliasRenderStore } from "./alias-render-store";
 import { aliasRenderStatusPresentation } from "./alias-render-status";
-import { refreshPreview } from "./preview-refresh";
+import { refreshPreview as refreshPreviewInternal } from "./preview-refresh";
 import { toAliasTreeNodes, toChartTreeNode } from "./tree-node";
 import type {
   ChartConfig,
@@ -52,7 +52,7 @@ export function activate(context: vscode.ExtensionContext) {
     treeView,
     vscode.workspace.registerTextDocumentContentProvider("helmingway-preview", previewDocumentProvider),
     vscode.commands.registerCommand("helmingway.openPreview", openPreview),
-    vscode.commands.registerCommand("helmingway.refresh", () => runPreviewRefresh(provider)),
+    vscode.commands.registerCommand("helmingway.refreshPreview", () => refreshPreview(provider)),
     vscode.commands.registerCommand("helmingway.closeAllPreviews", closeAllPreviews),
     // Warm the preview cache once, when the Helmingway view is first revealed.
     treeView.onDidChangeVisibility(async (event) => {
@@ -61,7 +61,7 @@ export function activate(context: vscode.ExtensionContext) {
       }
 
       hasInitializedPreview = true;
-      await runPreviewRefresh(provider);
+      await refreshPreview(provider);
     }),
   );
 }
@@ -170,14 +170,17 @@ async function openPreview(node: Extract<HelmingwayTreeNode, { type: "alias" }>)
   });
 }
 
-async function runPreviewRefresh(provider: HelmingwayPreviewProvider): Promise<void> {
+/**
+ * Refresh the preview cache and update the tree view.
+ */
+async function refreshPreview(provider: HelmingwayPreviewProvider): Promise<void> {
   const workspaceFolder = getPrimaryWorkspaceFolder();
   if (!workspaceFolder) {
     return;
   }
 
   currentConfig = await readHelmingwayConfig();
-  await refreshPreview({
+  await refreshPreviewInternal({
     provider,
     workspacePath: workspaceFolder.uri.fsPath,
     config: currentConfig,

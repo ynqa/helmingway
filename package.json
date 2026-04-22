@@ -14,16 +14,16 @@
     "commands": [
       {
         "command": "helmingway.openPreview",
-        "title": "Helmingway: Open Preview"
+        "title": "Open Preview"
       },
       {
-        "command": "helmingway.refresh",
-        "title": "Helmingway: Refresh",
+        "command": "helmingway.refreshPreview",
+        "title": "Refresh Preview",
         "icon": "$(refresh)"
       },
       {
         "command": "helmingway.closeAllPreviews",
-        "title": "Helmingway: Close All Previews",
+        "title": "Close All Previews",
         "icon": "$(close-all)"
       }
     ],
@@ -34,13 +34,13 @@
           "when": "false"
         },
         {
-          "command": "helmingway.refresh",
+          "command": "helmingway.refreshPreview",
           "when": "false"
         }
       ],
       "view/title": [
         {
-          "command": "helmingway.refresh",
+          "command": "helmingway.refreshPreview",
           "when": "view == helmingway.preview",
           "group": "navigation"
         },
