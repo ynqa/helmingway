@@ -44,32 +44,38 @@ export async function refreshPreview({
       cancellable: false,
     },
     async (progress) => {
-      const failedAliases: string[] = [];
+      let completedCount = 0;
 
-      for (const target of renderTargets) {
-        const version = cache.begin(target.chart.name, target.alias.name);
-        provider.refresh();
-
-        progress.report({
-          increment: 100 / renderTargets.length,
-          message: `${target.chart.name}/${target.alias.name}`,
-        });
-
-        try {
-          const content = await renderHelmTemplate({
-            workspacePath,
-            chart: target.chart,
-            alias: target.alias,
-          });
-          cache.set(target.chart.name, target.alias.name, version, content);
+      const results = await Promise.all(
+        renderTargets.map(async (target) => {
+          const version = cache.begin(target.chart.name, target.alias.name);
           provider.refresh();
-        } catch (error) {
-          const message = error instanceof Error ? error.message : String(error);
-          cache.fail(target.chart.name, target.alias.name, version, message);
-          provider.refresh();
-          failedAliases.push(`${target.chart.name}/${target.alias.name}: ${message}`);
-        }
-      }
+
+          try {
+            const content = await renderHelmTemplate({
+              workspacePath,
+              chart: target.chart,
+              alias: target.alias,
+            });
+            cache.set(target.chart.name, target.alias.name, version, content);
+            provider.refresh();
+            return undefined;
+          } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            cache.fail(target.chart.name, target.alias.name, version, message);
+            provider.refresh();
+            return `${target.chart.name}/${target.alias.name}: ${message}`;
+          } finally {
+            completedCount += 1;
+            progress.report({
+              increment: 100 / renderTargets.length,
+              message: `${completedCount}/${renderTargets.length}`,
+            });
+          }
+        }),
+      );
+
+      const failedAliases = results.filter((result) => result !== undefined);
 
       if (failedAliases.length === 0) {
         vscode.window.showInformationMessage(
