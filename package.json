@@ -88,7 +88,8 @@
     }
   },
   "scripts": {
-    "compile": "tsc -p ./"
+    "compile": "tsc -p ./",
+    "lint": "oxlint src"
   },
   "dependencies": {
     "yaml": "^2.8.1"
@@ -96,6 +97,7 @@
   "devDependencies": {
     "@types/node": "^25.6.0",
     "@types/vscode": "^1.116.0",
+    "oxlint": "^1.61.0",
     "typescript": "^6.0.3"
   },
   "packageManager": "pnpm@10.27.0"

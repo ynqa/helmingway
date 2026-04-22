@@ -1,5 +1,5 @@
-import type { HelmingwayConfig } from "./types";
 import type { AliasRenderStatus } from "./alias-render-status";
+import type { HelmingwayConfig } from "./types";
 
 export type AliasRenderEntry = {
   version: number;

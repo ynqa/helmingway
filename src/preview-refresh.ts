@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
-import { renderHelmTemplate } from "./helm-template";
 import type { AliasRenderStore } from "./alias-render-store";
 import type { HelmingwayConfig } from "./types";
+import { renderHelmTemplate } from "./helm-template";
 
 type RefreshableProvider = {
   refresh(): void;

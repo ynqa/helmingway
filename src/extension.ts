@@ -1,18 +1,18 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import * as vscode from "vscode";
-import { parse } from "yaml";
-import { parseChartSource } from "./chart-source";
-import { AliasRenderStore } from "./alias-render-store";
-import { aliasRenderStatusPresentation } from "./alias-render-status";
-import { refreshPreview as refreshPreviewInternal } from "./preview-refresh";
-import { toAliasTreeNodes, toChartTreeNode } from "./tree-node";
 import type {
   HelmingwayConfig,
   HelmingwayTreeNode,
   RawHelmingwayConfig,
 } from "./types";
+import { toAliasTreeNodes, toChartTreeNode } from "./tree-node";
+import { AliasRenderStore } from "./alias-render-store";
+import { aliasRenderStatusPresentation } from "./alias-render-status";
 import { getPrimaryWorkspaceFolder } from "./vscode-workspace";
+import { parse } from "yaml";
+import { parseChartSource } from "./chart-source";
+import { refreshPreview as refreshPreviewInternal } from "./preview-refresh";
 
 export function activate(context: vscode.ExtensionContext) {
   console.log("Helmingway extension is now active.");

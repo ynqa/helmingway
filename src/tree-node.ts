@@ -1,5 +1,5 @@
+import type { AliasTreeNode, ChartConfig, ChartTreeNode } from "./types";
 import { formatChartSource } from "./chart-source";
-import type { ChartConfig, ChartTreeNode, AliasTreeNode } from "./types";
 
 /**
  * Convert chart config into a tree node for the sidebar.
