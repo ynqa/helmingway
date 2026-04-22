@@ -20,25 +20,6 @@ let currentConfig: HelmingwayConfig = {};
 const previewCache = new AliasRenderStore();
 let selectedAliases: Array<Extract<HelmingwayTreeNode, { type: "alias" }>> = [];
 
-/**
- * Provide read-only preview content through `helmingway-preview` virtual document scheme.
- */
-class HelmingwayPreviewDocumentProvider implements vscode.TextDocumentContentProvider {
-  private readonly onDidChangeEmitter = new vscode.EventEmitter<vscode.Uri>();
-  private readonly documents = new Map<string, string>();
-
-  readonly onDidChange = this.onDidChangeEmitter.event;
-
-  setContent(uri: vscode.Uri, content: string): void {
-    this.documents.set(uri.toString(), content);
-    this.onDidChangeEmitter.fire(uri);
-  }
-
-  provideTextDocumentContent(uri: vscode.Uri): string {
-    return this.documents.get(uri.toString()) ?? "";
-  }
-}
-
 export function activate(context: vscode.ExtensionContext) {
   console.log("Helmingway extension is now active.");
 
@@ -77,9 +58,28 @@ export function activate(context: vscode.ExtensionContext) {
 export function deactivate() {}
 
 /**
+ * Provide read-only preview content through `helmingway-preview` virtual document scheme.
+ */
+class HelmingwayPreviewDocumentProvider implements vscode.TextDocumentContentProvider {
+  private readonly onDidChangeEmitter = new vscode.EventEmitter<vscode.Uri>();
+  private readonly documents = new Map<string, string>();
+
+  readonly onDidChange = this.onDidChangeEmitter.event;
+
+  setContent(uri: vscode.Uri, content: string): void {
+    this.documents.set(uri.toString(), content);
+    this.onDidChangeEmitter.fire(uri);
+  }
+
+  provideTextDocumentContent(uri: vscode.Uri): string {
+    return this.documents.get(uri.toString()) ?? "";
+  }
+}
+
+/**
  * Provide Helmingway sidebar tree shown in VS Code Side View.
  */
-export class HelmingwayPreviewProvider implements vscode.TreeDataProvider<HelmingwayTreeNode> {
+class HelmingwayPreviewProvider implements vscode.TreeDataProvider<HelmingwayTreeNode> {
   private readonly onDidChangeTreeDataEmitter = new vscode.EventEmitter<HelmingwayTreeNode | undefined>();
 
   constructor(private readonly renderStore: AliasRenderStore) {}
