@@ -44,6 +44,9 @@ export function activate(context: vscode.ExtensionContext) {
       refreshPreview(treeDataProvider),
     ),
     vscode.commands.registerCommand("helmingway.closeAllPreviews", closeAllPreviews),
+
+    // Keep the current alias-only tree selection so the Compare command can use it.
+    // VS Code does not pass the full multi-selection to the command handler reliably.
     treeView.onDidChangeSelection((event) => {
       selectedAliases = event.selection.filter(
         (node): node is Extract<HelmingwayTreeNode, { type: "alias" }> => node.type === "alias",
