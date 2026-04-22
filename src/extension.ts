@@ -14,11 +14,10 @@ import type {
 } from "./types";
 import { getPrimaryWorkspaceFolder } from "./vscode-workspace";
 
-const previewCache = new AliasRenderStore();
-
 export function activate(context: vscode.ExtensionContext) {
   console.log("Helmingway extension is now active.");
 
+  const previewCache = new AliasRenderStore();
   const previewDocumentProvider = new HelmingwayPreviewDocumentProvider();
   const treeDataProvider = new HelmingwayTreeDataProvider(previewCache);
 
@@ -34,13 +33,13 @@ export function activate(context: vscode.ExtensionContext) {
     treeView,
     vscode.workspace.registerTextDocumentContentProvider("helmingway-preview", previewDocumentProvider),
     vscode.commands.registerCommand("helmingway.openPreview", (node) =>
-      openPreview(previewDocumentProvider, node),
+      openPreview(previewDocumentProvider, previewCache, node),
     ),
     vscode.commands.registerCommand("helmingway.compareSelectedAliases", () =>
-      compareSelectedAliases(previewDocumentProvider, selectedAliases),
+      compareSelectedAliases(previewDocumentProvider, previewCache, selectedAliases),
     ),
     vscode.commands.registerCommand("helmingway.refreshPreview", () =>
-      refreshPreview(treeDataProvider),
+      refreshPreview(treeDataProvider, previewCache),
     ),
     vscode.commands.registerCommand("helmingway.closeAllPreviews", closeAllPreviews),
 
@@ -58,7 +57,7 @@ export function activate(context: vscode.ExtensionContext) {
       }
 
       hasInitializedPreview = true;
-      await refreshPreview(treeDataProvider);
+      await refreshPreview(treeDataProvider, previewCache);
     }),
   );
 }
@@ -156,13 +155,14 @@ class HelmingwayTreeDataProvider implements vscode.TreeDataProvider<HelmingwayTr
  */
 async function openPreview(
   previewDocumentProvider: HelmingwayPreviewDocumentProvider,
+  previewCache: AliasRenderStore,
   node: Extract<HelmingwayTreeNode, { type: "alias" }>,
 ): Promise<void> {
   if (node.type !== "alias") {
     return;
   }
 
-  const content = getRenderedAliasContent(node);
+  const content = getRenderedAliasContent(previewCache, node);
   if (content === undefined) {
     return;
   }
@@ -187,6 +187,7 @@ async function openPreview(
  */
 async function compareSelectedAliases(
   previewDocumentProvider: HelmingwayPreviewDocumentProvider,
+  previewCache: AliasRenderStore,
   selectedAliases: Array<Extract<HelmingwayTreeNode, { type: "alias" }>>,
 ): Promise<void> {
   if (selectedAliases.length !== 2) {
@@ -195,12 +196,12 @@ async function compareSelectedAliases(
   }
 
   const [leftAlias, rightAlias] = selectedAliases;
-  const leftContent = getRenderedAliasContent(leftAlias);
+  const leftContent = getRenderedAliasContent(previewCache, leftAlias);
   if (!leftContent) {
     return;
   }
 
-  const rightContent = getRenderedAliasContent(rightAlias);
+  const rightContent = getRenderedAliasContent(previewCache, rightAlias);
   if (!rightContent) {
     return;
   }
@@ -228,7 +229,10 @@ async function compareSelectedAliases(
 /**
  * Refresh the preview cache and update the tree view.
  */
-async function refreshPreview(treeDataProvider: HelmingwayTreeDataProvider): Promise<void> {
+async function refreshPreview(
+  treeDataProvider: HelmingwayTreeDataProvider,
+  previewCache: AliasRenderStore,
+): Promise<void> {
   const workspaceFolder = getPrimaryWorkspaceFolder();
   if (!workspaceFolder) {
     return;
@@ -266,6 +270,7 @@ async function closeAllPreviews(): Promise<void> {
  * If the content is not available, show an information or error message and return undefined.
  */
 function getRenderedAliasContent(
+  previewCache: AliasRenderStore,
   node: Extract<HelmingwayTreeNode, { type: "alias" }>,
 ): string | undefined {
   const entry = previewCache.get(node.chartName, node.aliasName);
