@@ -13,8 +13,12 @@
   "contributes": {
     "commands": [
       {
-        "command": "helmingway.openPreview",
+        "command": "helmingway.openAliasPreview",
         "title": "Open Preview"
+      },
+      {
+        "command": "helmingway.openResourcePreview",
+        "title": "Open Resource Preview..."
       },
       {
         "command": "helmingway.compareSelectedAliases",
@@ -34,7 +38,11 @@
     "menus": {
       "commandPalette": [
         {
-          "command": "helmingway.openPreview",
+          "command": "helmingway.openAliasPreview",
+          "when": "false"
+        },
+        {
+          "command": "helmingway.openResourcePreview",
           "when": "false"
         },
         {
@@ -60,8 +68,16 @@
       ],
       "view/item/context": [
         {
-          "command": "helmingway.openPreview",
+          "command": "helmingway.openAliasPreview",
           "when": "view == helmingway.preview && viewItem == alias"
+        },
+        {
+          "command": "helmingway.openResourcePreview",
+          "when": "view == helmingway.preview && viewItem == alias"
+        },
+        {
+          "command": "helmingway.openResourcePreview",
+          "when": "view == helmingway.preview && viewItem == resource"
         },
         {
           "command": "helmingway.compareSelectedAliases",
