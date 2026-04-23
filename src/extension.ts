@@ -2,10 +2,13 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import * as vscode from "vscode";
 import type {
+  AliasTreeNode,
   HelmingwayConfig,
   HelmingwayTreeNode,
   RawHelmingwayConfig,
+  ResourceTreeNode,
 } from "./types";
+import { joinRenderedResourceContent, parseRenderedResources } from "./rendered-resource";
 import { toAliasTreeNodes, toChartTreeNode } from "./tree-node";
 import { AliasRenderStore } from "./alias-render-store";
 import { aliasRenderStatusPresentation } from "./alias-render-status";
@@ -13,6 +16,7 @@ import { getPrimaryWorkspaceFolder } from "./vscode-workspace";
 import { parse } from "yaml";
 import { parseChartSource } from "./chart-source";
 import { refreshPreview as refreshPreviewInternal } from "./preview-refresh";
+import { showPreviewDocument } from "./preview-document";
 
 export function activate(context: vscode.ExtensionContext) {
   console.log("Helmingway extension is now active.");
@@ -32,8 +36,8 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
     treeView,
     vscode.workspace.registerTextDocumentContentProvider("helmingway-preview", previewDocumentProvider),
-    vscode.commands.registerCommand("helmingway.openPreview", (node) =>
-      openPreview(previewDocumentProvider, previewCache, node),
+    vscode.commands.registerCommand("helmingway.openAliasPreview", (node) =>
+      openAliasPreview(previewDocumentProvider, previewCache, treeDataProvider, node),
     ),
     vscode.commands.registerCommand("helmingway.compareSelectedAliases", () =>
       compareSelectedAliases(previewDocumentProvider, previewCache, selectedAliases),
@@ -49,6 +53,13 @@ export function activate(context: vscode.ExtensionContext) {
       selectedAliases = event.selection.filter(
         (node): node is Extract<HelmingwayTreeNode, { type: "alias" }> => node.type === "alias",
       );
+    }),
+    // Keep resource checkbox selection and open alias previews in sync.
+    // Checkbox changes update the per-alias selected resource set first,
+    // then refresh any affected alias preview documents.
+    treeView.onDidChangeCheckboxState((event) => {
+      treeDataProvider.updateResourceCheckboxes(event);
+      refreshAliasPreviewsForCheckboxChanges(previewDocumentProvider, previewCache, treeDataProvider, event);
     }),
     // Warm the preview cache once, when the Helmingway view is first revealed.
     treeView.onDidChangeVisibility(async (event) => {
@@ -88,6 +99,7 @@ class HelmingwayPreviewDocumentProvider implements vscode.TextDocumentContentPro
  */
 class HelmingwayTreeDataProvider implements vscode.TreeDataProvider<HelmingwayTreeNode> {
   private readonly onDidChangeTreeDataEmitter = new vscode.EventEmitter<HelmingwayTreeNode | undefined>();
+  private readonly selectedResourceKeysByAlias = new Map<string, Set<string>>();
   private currentConfig: HelmingwayConfig = {};
 
   constructor(private readonly renderStore: AliasRenderStore) {}
@@ -96,6 +108,39 @@ class HelmingwayTreeDataProvider implements vscode.TreeDataProvider<HelmingwayTr
 
   refresh(): void {
     this.onDidChangeTreeDataEmitter.fire(undefined);
+  }
+
+  updateResourceCheckboxes(event: vscode.TreeCheckboxChangeEvent<HelmingwayTreeNode>): void {
+    for (const [node, state] of event.items) {
+      if (node.type !== "resource") {
+        continue;
+      }
+
+      const aliasKey = toAliasSelectionKey(node);
+      const selectedKeys = this.selectedResourceKeysByAlias.get(aliasKey) ?? new Set<string>();
+      if (state === vscode.TreeItemCheckboxState.Checked) {
+        selectedKeys.add(node.resource.resourceId);
+      } else {
+        selectedKeys.delete(node.resource.resourceId);
+      }
+
+      if (selectedKeys.size === 0) {
+        this.selectedResourceKeysByAlias.delete(aliasKey);
+      } else {
+        this.selectedResourceKeysByAlias.set(aliasKey, selectedKeys);
+      }
+    }
+
+    this.refresh();
+  }
+
+  getSelectedResources(node: AliasTreeNode): ResourceTreeNode[] {
+    const selectedKeys = this.selectedResourceKeysByAlias.get(toAliasSelectionKey(node));
+    if (!selectedKeys || selectedKeys.size === 0) {
+      return [];
+    }
+
+    return this.getResourceChildren(node).filter((resourceNode) => selectedKeys.has(resourceNode.resource.resourceId));
   }
 
   async refreshConfig(): Promise<HelmingwayConfig> {
@@ -114,21 +159,34 @@ class HelmingwayTreeDataProvider implements vscode.TreeDataProvider<HelmingwayTr
       item.iconPath = new vscode.ThemeIcon("package");
       return item;
     } else if (element.type === "alias") {
-      const item = new vscode.TreeItem(element.aliasName, vscode.TreeItemCollapsibleState.None);
+      const resources = this.getResourceChildren(element);
+      const collapsibleState =
+        resources.length > 0 ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.None;
+      const item = new vscode.TreeItem(element.aliasName, collapsibleState);
       const entry = this.renderStore.get(element.chartName, element.aliasName);
       const status = entry?.status ?? "idle";
       const presentation = aliasRenderStatusPresentation[status];
+      const selectedCount = this.getSelectedResources(element).length;
       item.contextValue = "alias";
       item.iconPath = presentation.icon;
-      item.description = presentation.description;
+      item.description = selectedCount > 0 ? `${selectedCount} selected` : presentation.description;
       if (entry?.errorMessage) {
         item.tooltip = entry.errorMessage;
       }
       item.command = {
-        command: "helmingway.openPreview",
+        command: "helmingway.openAliasPreview",
         title: "Open Preview",
         arguments: [element],
       };
+      return item;
+    } else if (element.type === "resource") {
+      const item = new vscode.TreeItem(element.resource.resourceLabel, vscode.TreeItemCollapsibleState.None);
+      item.id = `${element.chartName}/${element.aliasName}/${element.resource.resourceId}`;
+      item.contextValue = "resource";
+      item.iconPath = new vscode.ThemeIcon("symbol-object");
+      item.checkboxState = this.isResourceSelected(element)
+        ? vscode.TreeItemCheckboxState.Checked
+        : vscode.TreeItemCheckboxState.Unchecked;
       return item;
     }
 
@@ -146,39 +204,54 @@ class HelmingwayTreeDataProvider implements vscode.TreeDataProvider<HelmingwayTr
       return chart ? toAliasTreeNodes(chart) : [];
     }
 
+    if (element.type === "alias") {
+      return this.getResourceChildren(element);
+    }
+
     return [];
+  }
+
+  private getResourceChildren(node: AliasTreeNode): ResourceTreeNode[] {
+    const entry = this.renderStore.get(node.chartName, node.aliasName);
+    if (entry?.status !== "rendered" || entry.content === undefined) {
+      return [];
+    }
+
+    return parseRenderedResources(entry.content).map((resource) => ({
+      type: "resource",
+      chartName: node.chartName,
+      aliasName: node.aliasName,
+      resource,
+    }));
+  }
+
+  private isResourceSelected(node: ResourceTreeNode): boolean {
+    return this.selectedResourceKeysByAlias.get(toAliasSelectionKey(node))?.has(node.resource.resourceId) ?? false;
   }
 }
 
 /**
  * Open a preview document for the given alias node.
  */
-async function openPreview(
+async function openAliasPreview(
   previewDocumentProvider: HelmingwayPreviewDocumentProvider,
   previewCache: AliasRenderStore,
-  node: Extract<HelmingwayTreeNode, { type: "alias" }>,
+  treeDataProvider: HelmingwayTreeDataProvider,
+  node: HelmingwayTreeNode,
 ): Promise<void> {
   if (node.type !== "alias") {
     return;
   }
 
-  const content = getRenderedAliasContent(previewCache, node);
-  if (content === undefined) {
+  const previewContent = getFilteredAliasPreviewContent(previewCache, treeDataProvider, node);
+  if (previewContent === undefined) {
     return;
   }
 
-  const uri = vscode.Uri.from({
-    scheme: "helmingway-preview",
+  await showPreviewDocument({
+    previewDocumentProvider,
+    content: previewContent,
     path: `/${node.aliasName}.yaml`,
-  });
-
-  previewDocumentProvider.setContent(uri, content);
-
-  const document = await vscode.workspace.openTextDocument(uri);
-  await vscode.languages.setTextDocumentLanguage(document, "yaml");
-  await vscode.window.showTextDocument(document, {
-    preview: false,
-    viewColumn: vscode.window.activeTextEditor?.viewColumn,
   });
 }
 
@@ -263,6 +336,62 @@ async function closeAllPreviews(): Promise<void> {
   }
 
   await vscode.window.tabGroups.close(previewTabs);
+}
+
+function toAliasSelectionKey(node: Pick<AliasTreeNode, "chartName" | "aliasName">): string {
+  return `${node.chartName}/${node.aliasName}`;
+}
+
+function refreshAliasPreviewsForCheckboxChanges(
+  previewDocumentProvider: HelmingwayPreviewDocumentProvider,
+  previewCache: AliasRenderStore,
+  treeDataProvider: HelmingwayTreeDataProvider,
+  event: vscode.TreeCheckboxChangeEvent<HelmingwayTreeNode>,
+): void {
+  const aliasesToRefresh = new Map<string, AliasTreeNode>();
+
+  for (const [node] of event.items) {
+    if (node.type !== "resource") {
+      continue;
+    }
+
+    aliasesToRefresh.set(toAliasSelectionKey(node), {
+      type: "alias",
+      chartName: node.chartName,
+      aliasName: node.aliasName,
+    });
+  }
+
+  for (const aliasNode of aliasesToRefresh.values()) {
+    const content = getFilteredAliasPreviewContent(previewCache, treeDataProvider, aliasNode);
+    if (content === undefined) {
+      continue;
+    }
+
+    const uri = vscode.Uri.from({
+      scheme: "helmingway-preview",
+      path: `/${aliasNode.aliasName}.yaml`,
+    });
+    previewDocumentProvider.setContent(uri, content);
+  }
+}
+
+function getFilteredAliasPreviewContent(
+  previewCache: AliasRenderStore,
+  treeDataProvider: HelmingwayTreeDataProvider,
+  node: AliasTreeNode,
+): string | undefined {
+  const content = getRenderedAliasContent(previewCache, node);
+  if (content === undefined) {
+    return undefined;
+  }
+
+  const selectedResources = treeDataProvider.getSelectedResources(node);
+  if (selectedResources.length === 0) {
+    return content;
+  }
+
+  return joinRenderedResourceContent(selectedResources.map((resourceNode) => resourceNode.resource));
 }
 
 /**
