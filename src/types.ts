@@ -1,3 +1,5 @@
+import type { PreviewResource } from "./rendered-resource";
+
 export type HelmingwayConfig = {
   helm?: {
     charts?: ChartConfig[];
@@ -84,4 +86,11 @@ export type AliasTreeNode = {
   aliasName: string;
 };
 
-export type HelmingwayTreeNode = ChartTreeNode | AliasTreeNode;
+export type ResourceTreeNode = {
+  type: "resource";
+  chartName: string;
+  aliasName: string;
+  resource: PreviewResource;
+};
+
+export type HelmingwayTreeNode = ChartTreeNode | AliasTreeNode | ResourceTreeNode;
