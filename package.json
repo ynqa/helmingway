@@ -17,10 +17,6 @@
         "title": "Open Preview"
       },
       {
-        "command": "helmingway.openResourcePreview",
-        "title": "Open Resource Preview..."
-      },
-      {
         "command": "helmingway.compareSelectedAliases",
         "title": "Compare"
       },
@@ -39,10 +35,6 @@
       "commandPalette": [
         {
           "command": "helmingway.openAliasPreview",
-          "when": "false"
-        },
-        {
-          "command": "helmingway.openResourcePreview",
           "when": "false"
         },
         {
@@ -70,14 +62,6 @@
         {
           "command": "helmingway.openAliasPreview",
           "when": "view == helmingway.preview && viewItem == alias"
-        },
-        {
-          "command": "helmingway.openResourcePreview",
-          "when": "view == helmingway.preview && viewItem == alias"
-        },
-        {
-          "command": "helmingway.openResourcePreview",
-          "when": "view == helmingway.preview && viewItem == resource"
         },
         {
           "command": "helmingway.compareSelectedAliases",
