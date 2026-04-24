@@ -3,7 +3,6 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import * as vscode from "vscode";
 import { parse } from "yaml";
-import { helmTemplateStatusPresentation, HelmTemplateCache } from "../helm/template-cache";
 import { getPrimaryWorkspaceFolder } from "../vscode-workspace";
 import {
   type AliasTreeNode,
@@ -16,6 +15,7 @@ import {
   toAliasTreeNodes,
   toChartTreeNode,
 } from "../models";
+import { helmTemplateStatusPresentation, HelmTemplateService } from "../helm/template-service";
 
 /**
  * Provide Helmingway sidebar tree shown in VS Code Side View.
@@ -25,7 +25,7 @@ export class HelmingwayTreeDataProvider implements vscode.TreeDataProvider<Helmi
   private readonly selectedResourceKeysByAlias = new Map<string, Set<string>>();
   private currentConfig: HelmingwayConfig = {};
 
-  constructor(private readonly renderStore: HelmTemplateCache) {}
+  constructor(private readonly renderStore: HelmTemplateService) {}
 
   readonly onDidChangeTreeData = this.onDidChangeTreeDataEmitter.event;
 
@@ -82,7 +82,7 @@ export class HelmingwayTreeDataProvider implements vscode.TreeDataProvider<Helmi
       const collapsibleState =
         resources.length > 0 ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.None;
       const item = new vscode.TreeItem(element.aliasName, collapsibleState);
-      const entry = this.renderStore.get(element.chartName, element.aliasName);
+      const entry = this.renderStore.getEntry(element.chartName, element.aliasName);
       const status = entry?.status ?? "idle";
       const presentation = helmTemplateStatusPresentation[status];
       const selectedCount = this.getSelectedResources(element).length;
@@ -131,7 +131,7 @@ export class HelmingwayTreeDataProvider implements vscode.TreeDataProvider<Helmi
   }
 
   private getResourceChildren(node: AliasTreeNode): ResourceTreeNode[] {
-    const entry = this.renderStore.get(node.chartName, node.aliasName);
+    const entry = this.renderStore.getEntry(node.chartName, node.aliasName);
     if (entry?.status !== "rendered" || entry.content === undefined) {
       return [];
     }
