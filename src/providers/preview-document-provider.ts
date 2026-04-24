@@ -14,7 +14,7 @@ export class HelmingwayPreviewDocumentProvider implements vscode.TextDocumentCon
     return this.documents.get(uri.toString()) ?? "";
   }
 
-  setContent(uri: vscode.Uri, content: string): void {
+  private setContent(uri: vscode.Uri, content: string): void {
     this.documents.set(uri.toString(), content);
     this.onDidChangeEmitter.fire(uri);
   }
@@ -36,5 +36,34 @@ export class HelmingwayPreviewDocumentProvider implements vscode.TextDocumentCon
       preview: false,
       viewColumn: vscode.window.activeTextEditor?.viewColumn,
     });
+  }
+
+  /**
+   * Open a side-by-side diff view comparing the two given alias nodes and their contents.
+   */
+  async showAliasComparison(
+    leftNode: AliasTreeNode,
+    leftContent: string,
+    rightNode: AliasTreeNode,
+    rightContent: string,
+  ): Promise<void> {
+    const leftUri = vscode.Uri.from({
+      scheme: "helmingway-preview",
+      path: `/compare/${leftNode.chartName}-${leftNode.aliasName}.yaml`,
+    });
+    const rightUri = vscode.Uri.from({
+      scheme: "helmingway-preview",
+      path: `/compare/${rightNode.chartName}-${rightNode.aliasName}.yaml`,
+    });
+
+    this.setContent(leftUri, leftContent);
+    this.setContent(rightUri, rightContent);
+
+    await vscode.commands.executeCommand(
+      "vscode.diff",
+      leftUri,
+      rightUri,
+      `${leftNode.aliasName} ↔ ${rightNode.aliasName}`,
+    );
   }
 }

@@ -109,24 +109,7 @@ async function compareSelectedAliases(
     return;
   }
 
-  const leftUri = vscode.Uri.from({
-    scheme: "helmingway-preview",
-    path: `/compare/${leftAlias.chartName}-${leftAlias.aliasName}.yaml`,
-  });
-  const rightUri = vscode.Uri.from({
-    scheme: "helmingway-preview",
-    path: `/compare/${rightAlias.chartName}-${rightAlias.aliasName}.yaml`,
-  });
-
-  previewDocumentProvider.setContent(leftUri, leftContent);
-  previewDocumentProvider.setContent(rightUri, rightContent);
-
-  await vscode.commands.executeCommand(
-    "vscode.diff",
-    leftUri,
-    rightUri,
-    `${leftAlias.aliasName} ↔ ${rightAlias.aliasName}`,
-  );
+  await previewDocumentProvider.showAliasComparison(leftAlias, leftContent, rightAlias, rightContent);
 }
 
 /**
