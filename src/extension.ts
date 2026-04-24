@@ -193,16 +193,7 @@ function refreshAliasPreviewsForCheckboxChanges(
   }
 
   for (const aliasNode of aliasesToRefresh.values()) {
-    const content = getFilteredAliasPreviewContent(previewCache, treeDataProvider, aliasNode);
-    if (content === undefined) {
-      continue;
-    }
-
-    const uri = vscode.Uri.from({
-      scheme: "helmingway-preview",
-      path: `/${aliasNode.aliasName}.yaml`,
-    });
-    previewDocumentProvider.setContent(uri, content);
+    void openAliasPreview(previewDocumentProvider, previewCache, treeDataProvider, aliasNode);
   }
 }
 
