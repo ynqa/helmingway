@@ -27,7 +27,7 @@ export type { HelmTemplateEntry, HelmTemplateStatus } from "./template-cache";
 /**
  * Orchestrate preview refresh and encapsulate helm template cache access.
  */
-export class HelmTemplateService {
+export class HelmService {
   private readonly cache = new HelmTemplateCache();
 
   async refresh({

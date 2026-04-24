@@ -6,7 +6,7 @@ import {
   isAliasNode,
   joinRenderedResourceContent,
 } from "./models";
-import { HelmTemplateService } from "./helm/template-service";
+import { HelmService } from "./helm/service";
 import { HelmingwayPreviewDocumentProvider } from "./providers/preview-document-provider";
 import { HelmingwayTreeDataProvider } from "./providers/tree-data-provider";
 import { getPrimaryWorkspaceFolder } from "./vscode-workspace";
@@ -14,9 +14,9 @@ import { getPrimaryWorkspaceFolder } from "./vscode-workspace";
 export function activate(context: vscode.ExtensionContext) {
   console.log("Helmingway extension is now active.");
 
-  const helmTemplateService = new HelmTemplateService();
+  const helmService = new HelmService();
   const previewDocumentProvider = new HelmingwayPreviewDocumentProvider();
-  const treeDataProvider = new HelmingwayTreeDataProvider(helmTemplateService);
+  const treeDataProvider = new HelmingwayTreeDataProvider(helmService);
 
   const treeView = vscode.window.createTreeView("helmingway.preview", {
     treeDataProvider,
@@ -34,13 +34,13 @@ export function activate(context: vscode.ExtensionContext) {
         return;
       }
 
-      return openAliasPreview(previewDocumentProvider, helmTemplateService, treeDataProvider, node);
+      return openAliasPreview(previewDocumentProvider, helmService, treeDataProvider, node);
     }),
     vscode.commands.registerCommand("helmingway.compareSelectedAliases", () =>
-      compareSelectedAliases(previewDocumentProvider, helmTemplateService, selectedAliases),
+      compareSelectedAliases(previewDocumentProvider, helmService, selectedAliases),
     ),
     vscode.commands.registerCommand("helmingway.refreshPreview", () =>
-      refreshPreview(treeDataProvider, helmTemplateService),
+      refreshPreview(treeDataProvider, helmService),
     ),
     vscode.commands.registerCommand("helmingway.closeAllPreviews", closeAllPreviews),
 
@@ -54,7 +54,7 @@ export function activate(context: vscode.ExtensionContext) {
     // then refresh any affected alias preview documents.
     treeView.onDidChangeCheckboxState((event) => {
       treeDataProvider.updateResourceCheckboxes(event);
-      refreshAliasPreviewsForCheckboxChanges(previewDocumentProvider, helmTemplateService, treeDataProvider, event);
+      refreshAliasPreviewsForCheckboxChanges(previewDocumentProvider, helmService, treeDataProvider, event);
     }),
     // Warm the preview cache once, when the Helmingway view is first revealed.
     treeView.onDidChangeVisibility(async (event) => {
@@ -63,7 +63,7 @@ export function activate(context: vscode.ExtensionContext) {
       }
 
       hasInitializedPreview = true;
-      await refreshPreview(treeDataProvider, helmTemplateService);
+      await refreshPreview(treeDataProvider, helmService);
     }),
   );
 }
@@ -75,11 +75,11 @@ export function deactivate() {}
  */
 async function openAliasPreview(
   previewDocumentProvider: HelmingwayPreviewDocumentProvider,
-  helmTemplateService: HelmTemplateService,
+  helmService: HelmService,
   treeDataProvider: HelmingwayTreeDataProvider,
   node: AliasTreeNode,
 ): Promise<void> {
-  const previewContent = getFilteredAliasPreviewContent(helmTemplateService, treeDataProvider, node);
+  const previewContent = getFilteredAliasPreviewContent(helmService, treeDataProvider, node);
   if (previewContent === undefined) {
     return;
   }
@@ -92,7 +92,7 @@ async function openAliasPreview(
  */
 async function compareSelectedAliases(
   previewDocumentProvider: HelmingwayPreviewDocumentProvider,
-  helmTemplateService: HelmTemplateService,
+  helmService: HelmService,
   selectedAliases: AliasTreeNode[],
 ): Promise<void> {
   if (selectedAliases.length !== 2) {
@@ -101,12 +101,12 @@ async function compareSelectedAliases(
   }
 
   const [leftAlias, rightAlias] = selectedAliases;
-  const leftContent = getRenderedAliasContent(helmTemplateService, leftAlias);
+  const leftContent = getRenderedAliasContent(helmService, leftAlias);
   if (!leftContent) {
     return;
   }
 
-  const rightContent = getRenderedAliasContent(helmTemplateService, rightAlias);
+  const rightContent = getRenderedAliasContent(helmService, rightAlias);
   if (!rightContent) {
     return;
   }
@@ -119,7 +119,7 @@ async function compareSelectedAliases(
  */
 async function refreshPreview(
   treeDataProvider: HelmingwayTreeDataProvider,
-  helmTemplateService: HelmTemplateService,
+  helmService: HelmService,
 ): Promise<void> {
   const workspaceFolder = getPrimaryWorkspaceFolder();
   if (!workspaceFolder) {
@@ -127,7 +127,7 @@ async function refreshPreview(
   }
 
   const currentConfig = await treeDataProvider.refreshConfig();
-  await helmTemplateService.refresh({
+  await helmService.refresh({
     provider: treeDataProvider,
     workspacePath: workspaceFolder.uri.fsPath,
     config: currentConfig,
@@ -154,7 +154,7 @@ async function closeAllPreviews(): Promise<void> {
 
 function refreshAliasPreviewsForCheckboxChanges(
   previewDocumentProvider: HelmingwayPreviewDocumentProvider,
-  helmTemplateService: HelmTemplateService,
+  helmService: HelmService,
   treeDataProvider: HelmingwayTreeDataProvider,
   event: vscode.TreeCheckboxChangeEvent<HelmingwayTreeNode>,
 ): void {
@@ -175,16 +175,16 @@ function refreshAliasPreviewsForCheckboxChanges(
   }
 
   for (const aliasNode of aliasesToRefresh.values()) {
-    void openAliasPreview(previewDocumentProvider, helmTemplateService, treeDataProvider, aliasNode);
+    void openAliasPreview(previewDocumentProvider, helmService, treeDataProvider, aliasNode);
   }
 }
 
 function getFilteredAliasPreviewContent(
-  helmTemplateService: HelmTemplateService,
+  helmService: HelmService,
   treeDataProvider: HelmingwayTreeDataProvider,
   node: AliasTreeNode,
 ): string | undefined {
-  const content = getRenderedAliasContent(helmTemplateService, node);
+  const content = getRenderedAliasContent(helmService, node);
   if (content === undefined) {
     return undefined;
   }
@@ -202,10 +202,10 @@ function getFilteredAliasPreviewContent(
  * If the content is not available, show an information or error message and return undefined.
  */
 function getRenderedAliasContent(
-  helmTemplateService: HelmTemplateService,
+  helmService: HelmService,
   node: AliasTreeNode,
 ): string | undefined {
-  const entry = helmTemplateService.getEntry(node.chartName, node.aliasName);
+  const entry = helmService.getEntry(node.chartName, node.aliasName);
   if (!entry || entry.status === "idle") {
     vscode.window.showInformationMessage(
       `Helmingway: ${node.chartName}/${node.aliasName} is not rendered yet. Run Refresh first.`,

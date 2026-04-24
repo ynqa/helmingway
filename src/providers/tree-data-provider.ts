@@ -15,7 +15,7 @@ import {
   toAliasTreeNodes,
   toChartTreeNode,
 } from "../models";
-import { helmTemplateStatusPresentation, HelmTemplateService } from "../helm/template-service";
+import { helmTemplateStatusPresentation, HelmService } from "../helm/service";
 
 /**
  * Provide Helmingway sidebar tree shown in VS Code Side View.
@@ -25,7 +25,7 @@ export class HelmingwayTreeDataProvider implements vscode.TreeDataProvider<Helmi
   private readonly selectedResourceKeysByAlias = new Map<string, Set<string>>();
   private currentConfig: HelmingwayConfig = {};
 
-  constructor(private readonly renderStore: HelmTemplateService) {}
+  constructor(private readonly renderStore: HelmService) {}
 
   readonly onDidChangeTreeData = this.onDidChangeTreeDataEmitter.event;
 
