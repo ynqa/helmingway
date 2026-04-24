@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import type { AliasTreeNode } from "../types";
+import type { AliasTreeNode } from "../models";
 
 /**
  * Provide read-only preview content through `helmingway-preview` virtual document scheme.

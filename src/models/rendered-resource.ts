@@ -1,4 +1,4 @@
-import { parseAllDocuments, Range } from "yaml";
+import { Range, parseAllDocuments } from "yaml";
 
 /**
  * Preview-specific representation of a rendered Kubernetes manifest document.

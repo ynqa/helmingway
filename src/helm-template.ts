@@ -1,7 +1,7 @@
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import type { AliasConfig, ChartConfig } from "./types";
+import type { AliasConfig, ChartConfig } from "./models";
 import { execFile as execFileCallback } from "node:child_process";
 import { promisify } from "node:util";
 import { stringify } from "yaml";

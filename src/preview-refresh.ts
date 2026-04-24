@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
-import type { AliasRenderStore } from "./alias-render-store";
-import type { HelmingwayConfig } from "./types";
+import type { HelmTemplateCache } from "./models";
+import type { HelmingwayConfig } from "./models";
 import { renderHelmTemplate } from "./helm-template";
 
 type RefreshableProvider = {
@@ -17,7 +17,7 @@ type RefreshPreviewOptions = {
   provider: RefreshableProvider;
   workspacePath: string;
   config: HelmingwayConfig;
-  cache: AliasRenderStore;
+  cache: HelmTemplateCache;
 };
 
 /**

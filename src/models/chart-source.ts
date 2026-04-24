@@ -1,4 +1,24 @@
-import type { ChartConfig, HelmChartSource } from "./types";
+export type HelmChartSource =
+  | {
+      kind: "reference";
+      ref: string;
+    }
+  | {
+      kind: "packaged";
+      filePath: string;
+    }
+  | {
+      kind: "directory";
+      directoryPath: string;
+    }
+  | {
+      kind: "url";
+      url: string;
+    }
+  | {
+      kind: "oci";
+      ref: string;
+    };
 
 /**
  * Parse raw config value into a normalized helm chart source.
@@ -41,7 +61,7 @@ export function parseChartSource(source: string): HelmChartSource {
 /**
  * Format helm chart source for display in the sidebar.
  */
-export function formatChartSource(chartSource: ChartConfig["source"]): string {
+export function formatChartSource(chartSource: HelmChartSource): string {
   switch (chartSource.kind) {
     case "reference":
       return chartSource.ref;

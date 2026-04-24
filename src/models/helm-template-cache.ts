@@ -1,18 +1,51 @@
-import type { AliasRenderStatus } from "./alias-render-status";
-import type { HelmingwayConfig } from "./types";
+import * as vscode from "vscode";
+import type { HelmingwayConfig } from "./config";
 
-export type AliasRenderEntry = {
+export type HelmTemplateStatus = "idle" | "rendering" | "rendered" | "failed";
+
+/**
+ * Presentation details for each render status, used in the tree view.
+ *
+ * ThemeIcon reference:
+ * - https://code.visualstudio.com/api/references/icons-in-labels
+ */
+export const helmTemplateStatusPresentation = {
+  idle: {
+    icon: new vscode.ThemeIcon("circle-outline"),
+    description: "idle",
+  },
+  rendering: {
+    icon: new vscode.ThemeIcon("sync"),
+    description: "rendering",
+  },
+  rendered: {
+    icon: new vscode.ThemeIcon("check"),
+    description: "rendered",
+  },
+  failed: {
+    icon: new vscode.ThemeIcon("error"),
+    description: "failed",
+  },
+} satisfies Record<
+  HelmTemplateStatus,
+  {
+    icon: vscode.ThemeIcon;
+    description: string;
+  }
+>;
+
+export type HelmTemplateEntry = {
   version: number;
-  status: AliasRenderStatus;
+  status: HelmTemplateStatus;
   content?: string;
-  errorMessage?: string;
+  helmTemplateErrorMessage?: string;
 };
 
 /**
  * Store rendered YAML and render state by chart/alias pair.
  */
-export class AliasRenderStore {
-  private readonly entries = new Map<string, AliasRenderEntry>();
+export class HelmTemplateCache {
+  private readonly entries = new Map<string, HelmTemplateEntry>();
 
   begin(chartName: string, aliasName: string): number {
     const key = toPreviewCacheKey(chartName, aliasName);
@@ -41,7 +74,7 @@ export class AliasRenderStore {
     });
   }
 
-  fail(chartName: string, aliasName: string, version: number, errorMessage: string): void {
+  fail(chartName: string, aliasName: string, version: number, helmTemplateErrorMessage: string): void {
     const key = toPreviewCacheKey(chartName, aliasName);
     const current = this.entries.get(key);
     if (!current || current.version !== version) {
@@ -52,11 +85,11 @@ export class AliasRenderStore {
       version,
       status: "failed",
       content: current.content,
-      errorMessage,
+      helmTemplateErrorMessage,
     });
   }
 
-  get(chartName: string, aliasName: string): AliasRenderEntry | undefined {
+  get(chartName: string, aliasName: string): HelmTemplateEntry | undefined {
     return this.entries.get(toPreviewCacheKey(chartName, aliasName));
   }
 

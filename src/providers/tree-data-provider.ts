@@ -2,20 +2,21 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import * as vscode from "vscode";
+import { parse } from "yaml";
+import { getPrimaryWorkspaceFolder } from "../vscode-workspace";
 import {
+  helmTemplateStatusPresentation,
+  HelmTemplateCache,
   type AliasTreeNode,
   type HelmingwayConfig,
   type HelmingwayTreeNode,
+  parseRenderedResources,
+  parseChartSource,
   type RawHelmingwayConfig,
   type ResourceTreeNode,
-} from "../types";
-import { toAliasTreeNodes, toChartTreeNode } from "../tree-node";
-import { parse } from "yaml";
-import { aliasRenderStatusPresentation } from "../alias-render-status";
-import { AliasRenderStore } from "../alias-render-store";
-import { getPrimaryWorkspaceFolder } from "../vscode-workspace";
-import { parseChartSource } from "../chart-source";
-import { parseRenderedResources } from "../rendered-resource";
+  toAliasTreeNodes,
+  toChartTreeNode,
+} from "../models";
 
 /**
  * Provide Helmingway sidebar tree shown in VS Code Side View.
@@ -25,7 +26,7 @@ export class HelmingwayTreeDataProvider implements vscode.TreeDataProvider<Helmi
   private readonly selectedResourceKeysByAlias = new Map<string, Set<string>>();
   private currentConfig: HelmingwayConfig = {};
 
-  constructor(private readonly renderStore: AliasRenderStore) {}
+  constructor(private readonly renderStore: HelmTemplateCache) {}
 
   readonly onDidChangeTreeData = this.onDidChangeTreeDataEmitter.event;
 
@@ -84,13 +85,13 @@ export class HelmingwayTreeDataProvider implements vscode.TreeDataProvider<Helmi
       const item = new vscode.TreeItem(element.aliasName, collapsibleState);
       const entry = this.renderStore.get(element.chartName, element.aliasName);
       const status = entry?.status ?? "idle";
-      const presentation = aliasRenderStatusPresentation[status];
+      const presentation = helmTemplateStatusPresentation[status];
       const selectedCount = this.getSelectedResources(element).length;
       item.contextValue = "alias";
       item.iconPath = presentation.icon;
       item.description = selectedCount > 0 ? `${selectedCount} selected` : presentation.description;
-      if (entry?.errorMessage) {
-        item.tooltip = entry.errorMessage;
+      if (entry?.helmTemplateErrorMessage) {
+        item.tooltip = entry.helmTemplateErrorMessage;
       }
       item.command = {
         command: "helmingway.openAliasPreview",
