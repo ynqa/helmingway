@@ -1,12 +1,12 @@
 /* eslint-disable sort-imports */
 import * as vscode from "vscode";
 import {
-  HelmTemplateCache,
   type AliasTreeNode,
   type HelmingwayTreeNode,
   isAliasNode,
   joinRenderedResourceContent,
 } from "./models";
+import { HelmTemplateCache } from "./helm/template-cache";
 import { HelmingwayPreviewDocumentProvider } from "./providers/preview-document-provider";
 import { HelmingwayTreeDataProvider } from "./providers/tree-data-provider";
 import { getPrimaryWorkspaceFolder } from "./vscode-workspace";

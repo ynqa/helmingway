@@ -1,7 +1,8 @@
+/* eslint-disable sort-imports */
 import * as vscode from "vscode";
-import type { HelmTemplateCache } from "./models";
+import type { HelmTemplateCache } from "./helm/template-cache";
+import { runHelmTemplate } from "./helm/template";
 import type { HelmingwayConfig } from "./models";
-import { renderHelmTemplate } from "./helm-template";
 
 type RefreshableProvider = {
   refresh(): void;
@@ -58,7 +59,7 @@ export async function refreshPreview({
           provider.refresh();
 
           try {
-            const content = await renderHelmTemplate({
+            const content = await runHelmTemplate({
               workspacePath,
               chart: target.chart,
               alias: target.alias,

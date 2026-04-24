@@ -1,14 +1,15 @@
+/* eslint-disable sort-imports */
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import type { AliasConfig, ChartConfig } from "./models";
 import { execFile as execFileCallback } from "node:child_process";
 import { promisify } from "node:util";
 import { stringify } from "yaml";
+import type { AliasConfig, ChartConfig } from "../models";
 
 const execFile = promisify(execFileCallback);
 
-type RenderHelmTemplateOptions = {
+type RunHelmTemplateOptions = {
   workspacePath: string;
   chart: ChartConfig;
   alias: AliasConfig;
@@ -17,11 +18,11 @@ type RenderHelmTemplateOptions = {
 /**
  * Run `helm template` for the given chart and alias, then return the rendered YAML.
  */
-export async function renderHelmTemplate({
+export async function runHelmTemplate({
   workspacePath,
   chart,
   alias,
-}: RenderHelmTemplateOptions): Promise<string> {
+}: RunHelmTemplateOptions): Promise<string> {
   const chartPath = resolveChartTemplateArg(workspacePath, chart);
   const args = ["template", chart.releaseName ?? chart.name, chartPath];
   const temporaryPaths: string[] = [];

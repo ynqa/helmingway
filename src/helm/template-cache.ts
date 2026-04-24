@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import type { HelmingwayConfig } from "./config";
+import type { HelmingwayConfig } from "../models";
 
 export type HelmTemplateStatus = "idle" | "rendering" | "rendered" | "failed";
 

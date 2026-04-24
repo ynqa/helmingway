@@ -3,10 +3,9 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import * as vscode from "vscode";
 import { parse } from "yaml";
+import { helmTemplateStatusPresentation, HelmTemplateCache } from "../helm/template-cache";
 import { getPrimaryWorkspaceFolder } from "../vscode-workspace";
 import {
-  helmTemplateStatusPresentation,
-  HelmTemplateCache,
   type AliasTreeNode,
   type HelmingwayConfig,
   type HelmingwayTreeNode,
