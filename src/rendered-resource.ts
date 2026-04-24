@@ -1,4 +1,4 @@
-import { parseAllDocuments } from "yaml";
+import { parseAllDocuments, Range } from "yaml";
 
 /**
  * Preview-specific representation of a rendered Kubernetes manifest document.
@@ -59,7 +59,7 @@ export function parseRenderedResources(content: string): PreviewResource[] {
       return {
         resourceId,
         resourceLabel: `${kind} ${name}`,
-        manifestYaml: document.toString().trimEnd(),
+        manifestYaml: toManifestYaml(content, document.range),
         previewFileName: `${kind}-${name}.yaml`,
       } satisfies PreviewResource;
     })
@@ -82,9 +82,17 @@ export function parseRenderedResources(content: string): PreviewResource[] {
 }
 
 export function joinRenderedResourceContent(resources: PreviewResource[]): string {
-  return `${resources.map((resource) => resource.manifestYaml).join("\n---\n")}\n`;
+  return `${resources.map((resource) => `---\n${resource.manifestYaml}`).join("\n")}\n`;
 }
 
 function getStringValue(value: unknown): string | undefined {
   return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
+function toManifestYaml(content: string, range: Range | undefined): string {
+  if (!range) {
+    return "";
+  }
+
+  return content.slice(range[0], range[1]).replace(/^(?:---\r?\n)+/, "").trimEnd();
 }
