@@ -1,20 +1,10 @@
-import * as fs from "node:fs/promises";
-import * as path from "node:path";
 import * as vscode from "vscode";
-import type {
-  AliasTreeNode,
-  HelmingwayConfig,
-  HelmingwayTreeNode,
-  RawHelmingwayConfig,
-  ResourceTreeNode,
-} from "./types";
-import { joinRenderedResourceContent, parseRenderedResources } from "./rendered-resource";
-import { toAliasTreeNodes, toChartTreeNode } from "./tree-node";
+import { type AliasTreeNode, type HelmingwayTreeNode } from "./types";
 import { AliasRenderStore } from "./alias-render-store";
-import { aliasRenderStatusPresentation } from "./alias-render-status";
+import { HelmingwayPreviewDocumentProvider } from "./providers/preview-document-provider";
+import { HelmingwayTreeDataProvider } from "./providers/tree-data-provider";
 import { getPrimaryWorkspaceFolder } from "./vscode-workspace";
-import { parse } from "yaml";
-import { parseChartSource } from "./chart-source";
+import { joinRenderedResourceContent } from "./rendered-resource";
 import { refreshPreview as refreshPreviewInternal } from "./preview-refresh";
 import { showPreviewDocument } from "./preview-document";
 
@@ -74,161 +64,6 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 export function deactivate() {}
-
-/**
- * Provide read-only preview content through `helmingway-preview` virtual document scheme.
- */
-class HelmingwayPreviewDocumentProvider implements vscode.TextDocumentContentProvider {
-  private readonly onDidChangeEmitter = new vscode.EventEmitter<vscode.Uri>();
-  private readonly documents = new Map<string, string>();
-
-  readonly onDidChange = this.onDidChangeEmitter.event;
-
-  setContent(uri: vscode.Uri, content: string): void {
-    this.documents.set(uri.toString(), content);
-    this.onDidChangeEmitter.fire(uri);
-  }
-
-  provideTextDocumentContent(uri: vscode.Uri): string {
-    return this.documents.get(uri.toString()) ?? "";
-  }
-}
-
-/**
- * Provide Helmingway sidebar tree shown in VS Code Side View.
- */
-class HelmingwayTreeDataProvider implements vscode.TreeDataProvider<HelmingwayTreeNode> {
-  private readonly onDidChangeTreeDataEmitter = new vscode.EventEmitter<HelmingwayTreeNode | undefined>();
-  private readonly selectedResourceKeysByAlias = new Map<string, Set<string>>();
-  private currentConfig: HelmingwayConfig = {};
-
-  constructor(private readonly renderStore: AliasRenderStore) {}
-
-  readonly onDidChangeTreeData = this.onDidChangeTreeDataEmitter.event;
-
-  refresh(): void {
-    this.onDidChangeTreeDataEmitter.fire(undefined);
-  }
-
-  updateResourceCheckboxes(event: vscode.TreeCheckboxChangeEvent<HelmingwayTreeNode>): void {
-    for (const [node, state] of event.items) {
-      if (node.type !== "resource") {
-        continue;
-      }
-
-      const aliasKey = toAliasSelectionKey(node);
-      const selectedKeys = this.selectedResourceKeysByAlias.get(aliasKey) ?? new Set<string>();
-      if (state === vscode.TreeItemCheckboxState.Checked) {
-        selectedKeys.add(node.resource.resourceId);
-      } else {
-        selectedKeys.delete(node.resource.resourceId);
-      }
-
-      if (selectedKeys.size === 0) {
-        this.selectedResourceKeysByAlias.delete(aliasKey);
-      } else {
-        this.selectedResourceKeysByAlias.set(aliasKey, selectedKeys);
-      }
-    }
-
-    this.refresh();
-  }
-
-  getSelectedResources(node: AliasTreeNode): ResourceTreeNode[] {
-    const selectedKeys = this.selectedResourceKeysByAlias.get(toAliasSelectionKey(node));
-    if (!selectedKeys || selectedKeys.size === 0) {
-      return [];
-    }
-
-    return this.getResourceChildren(node).filter((resourceNode) => selectedKeys.has(resourceNode.resource.resourceId));
-  }
-
-  async refreshConfig(): Promise<HelmingwayConfig> {
-    this.currentConfig = await readHelmingwayConfig();
-    return this.currentConfig;
-  }
-
-  /**
-   * Build each row in the tree.
-   */
-  getTreeItem(element: HelmingwayTreeNode): vscode.TreeItem {
-    if (element.type === "chart") {
-      const item = new vscode.TreeItem(element.chartName, vscode.TreeItemCollapsibleState.Collapsed);
-      // Show chart path as description in the sidebar.
-      item.description = element.chartPath;
-      item.iconPath = new vscode.ThemeIcon("package");
-      return item;
-    } else if (element.type === "alias") {
-      const resources = this.getResourceChildren(element);
-      const collapsibleState =
-        resources.length > 0 ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.None;
-      const item = new vscode.TreeItem(element.aliasName, collapsibleState);
-      const entry = this.renderStore.get(element.chartName, element.aliasName);
-      const status = entry?.status ?? "idle";
-      const presentation = aliasRenderStatusPresentation[status];
-      const selectedCount = this.getSelectedResources(element).length;
-      item.contextValue = "alias";
-      item.iconPath = presentation.icon;
-      item.description = selectedCount > 0 ? `${selectedCount} selected` : presentation.description;
-      if (entry?.errorMessage) {
-        item.tooltip = entry.errorMessage;
-      }
-      item.command = {
-        command: "helmingway.openAliasPreview",
-        title: "Open Preview",
-        arguments: [element],
-      };
-      return item;
-    } else if (element.type === "resource") {
-      const item = new vscode.TreeItem(element.resource.resourceLabel, vscode.TreeItemCollapsibleState.None);
-      item.id = `${element.chartName}/${element.aliasName}/${element.resource.resourceId}`;
-      item.contextValue = "resource";
-      item.iconPath = new vscode.ThemeIcon("symbol-object");
-      item.checkboxState = this.isResourceSelected(element)
-        ? vscode.TreeItemCheckboxState.Checked
-        : vscode.TreeItemCheckboxState.Unchecked;
-      return item;
-    }
-
-    throw new Error(`Unhandled tree node type: ${JSON.stringify(element)}`);
-  }
-
-  async getChildren(element?: HelmingwayTreeNode): Promise<HelmingwayTreeNode[]> {
-    if (!element) {
-      const currentConfig = await this.refreshConfig();
-      return (currentConfig.helm?.charts ?? []).map(toChartTreeNode);
-    }
-
-    if (element.type === "chart") {
-      const chart = (this.currentConfig.helm?.charts ?? []).find((chart) => chart.name === element.chartName);
-      return chart ? toAliasTreeNodes(chart) : [];
-    }
-
-    if (element.type === "alias") {
-      return this.getResourceChildren(element);
-    }
-
-    return [];
-  }
-
-  private getResourceChildren(node: AliasTreeNode): ResourceTreeNode[] {
-    const entry = this.renderStore.get(node.chartName, node.aliasName);
-    if (entry?.status !== "rendered" || entry.content === undefined) {
-      return [];
-    }
-
-    return parseRenderedResources(entry.content).map((resource) => ({
-      type: "resource",
-      chartName: node.chartName,
-      aliasName: node.aliasName,
-      resource,
-    }));
-  }
-
-  private isResourceSelected(node: ResourceTreeNode): boolean {
-    return this.selectedResourceKeysByAlias.get(toAliasSelectionKey(node))?.has(node.resource.resourceId) ?? false;
-  }
-}
 
 /**
  * Open a preview document for the given alias node.
@@ -429,39 +264,4 @@ function getRenderedAliasContent(
   }
 
   return entry.content;
-}
-
-/**
- * Read and parse helmingway.yaml from workspace folder.
- * If the file is missing or invalid, show an error message and return an empty config.
- */
-async function readHelmingwayConfig(): Promise<HelmingwayConfig> {
-  // TODO: Support reading helmingway.yaml from multiple VS Code workspace folders.
-  const workspaceFolder = getPrimaryWorkspaceFolder();
-  if (!workspaceFolder) {
-    return {};
-  }
-
-  const configPath = path.join(workspaceFolder.uri.fsPath, "helmingway.yaml");
-
-  try {
-    const content = await fs.readFile(configPath, "utf8");
-    const raw = parse(content) as RawHelmingwayConfig;
-
-    return {
-      helm: {
-        charts: (raw.helm?.charts ?? []).map((chart) => ({
-          name: chart.name,
-          source: parseChartSource(chart.source),
-          releaseName: chart.releaseName,
-          namespace: chart.namespace,
-          aliases: chart.aliases,
-        })),
-      },
-    };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    vscode.window.showErrorMessage(`Helmingway: Failed to read config file: ${message}`);
-    return {};
-  }
 }
