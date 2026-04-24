@@ -82,7 +82,7 @@ async function openAliasPreview(
     return;
   }
 
-  await previewDocumentProvider.showPreviewDocument(`/${node.aliasName}.yaml`, previewContent);
+  await previewDocumentProvider.showAliasPreview(node, previewContent);
 }
 
 /**
