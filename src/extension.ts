@@ -151,10 +151,6 @@ async function closeAllPreviews(): Promise<void> {
   await vscode.window.tabGroups.close(previewTabs);
 }
 
-function toAliasSelectionKey(node: Pick<AliasTreeNode, "chartName" | "aliasName">): string {
-  return `${node.chartName}/${node.aliasName}`;
-}
-
 function refreshAliasPreviewsForCheckboxChanges(
   previewDocumentProvider: HelmingwayPreviewDocumentProvider,
   previewCache: AliasRenderStore,
@@ -168,7 +164,9 @@ function refreshAliasPreviewsForCheckboxChanges(
       continue;
     }
 
-    aliasesToRefresh.set(toAliasSelectionKey(node), {
+    const key = `${node.chartName}/${node.aliasName}`;
+
+    aliasesToRefresh.set(key, {
       type: "alias",
       chartName: node.chartName,
       aliasName: node.aliasName,
