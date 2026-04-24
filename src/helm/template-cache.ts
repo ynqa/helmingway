@@ -48,7 +48,7 @@ export class HelmTemplateCache {
   private readonly entries = new Map<string, HelmTemplateEntry>();
 
   begin(chartName: string, aliasName: string): number {
-    const key = toPreviewCacheKey(chartName, aliasName);
+    const key = this.toCacheKey(chartName, aliasName);
     const nextVersion = (this.entries.get(key)?.version ?? 0) + 1;
 
     this.entries.set(key, {
@@ -61,7 +61,7 @@ export class HelmTemplateCache {
   }
 
   set(chartName: string, aliasName: string, version: number, content: string): void {
-    const key = toPreviewCacheKey(chartName, aliasName);
+    const key = this.toCacheKey(chartName, aliasName);
     const current = this.entries.get(key);
     if (!current || current.version !== version) {
       return;
@@ -75,7 +75,7 @@ export class HelmTemplateCache {
   }
 
   fail(chartName: string, aliasName: string, version: number, helmTemplateErrorMessage: string): void {
-    const key = toPreviewCacheKey(chartName, aliasName);
+    const key = this.toCacheKey(chartName, aliasName);
     const current = this.entries.get(key);
     if (!current || current.version !== version) {
       return;
@@ -90,13 +90,13 @@ export class HelmTemplateCache {
   }
 
   get(chartName: string, aliasName: string): HelmTemplateEntry | undefined {
-    return this.entries.get(toPreviewCacheKey(chartName, aliasName));
+    return this.entries.get(this.toCacheKey(chartName, aliasName));
   }
 
   prune(config: HelmingwayConfig): void {
     const activeKeys = new Set(
       (config.helm?.charts ?? []).flatMap((chart) =>
-        (chart.aliases ?? []).map((alias) => toPreviewCacheKey(chart.name, alias.name)),
+        (chart.aliases ?? []).map((alias) => this.toCacheKey(chart.name, alias.name)),
       ),
     );
 
@@ -115,8 +115,8 @@ export class HelmTemplateCache {
       }
     }
   }
-}
 
-function toPreviewCacheKey(chartName: string, aliasName: string): string {
-  return `${chartName}:${aliasName}`;
+  private toCacheKey(chartName: string, aliasName: string): string {
+    return `${chartName}:${aliasName}`;
+  }
 }

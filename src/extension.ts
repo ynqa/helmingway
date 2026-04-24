@@ -15,9 +15,9 @@ import { refreshPreview as refreshPreviewInternal } from "./preview-refresh";
 export function activate(context: vscode.ExtensionContext) {
   console.log("Helmingway extension is now active.");
 
-  const previewCache = new HelmTemplateCache();
+  const helmTemplateCache = new HelmTemplateCache();
   const previewDocumentProvider = new HelmingwayPreviewDocumentProvider();
-  const treeDataProvider = new HelmingwayTreeDataProvider(previewCache);
+  const treeDataProvider = new HelmingwayTreeDataProvider(helmTemplateCache);
 
   const treeView = vscode.window.createTreeView("helmingway.preview", {
     treeDataProvider,
@@ -35,13 +35,13 @@ export function activate(context: vscode.ExtensionContext) {
         return;
       }
 
-      return openAliasPreview(previewDocumentProvider, previewCache, treeDataProvider, node);
+      return openAliasPreview(previewDocumentProvider, helmTemplateCache, treeDataProvider, node);
     }),
     vscode.commands.registerCommand("helmingway.compareSelectedAliases", () =>
-      compareSelectedAliases(previewDocumentProvider, previewCache, selectedAliases),
+      compareSelectedAliases(previewDocumentProvider, helmTemplateCache, selectedAliases),
     ),
     vscode.commands.registerCommand("helmingway.refreshPreview", () =>
-      refreshPreview(treeDataProvider, previewCache),
+      refreshPreview(treeDataProvider, helmTemplateCache),
     ),
     vscode.commands.registerCommand("helmingway.closeAllPreviews", closeAllPreviews),
 
@@ -55,7 +55,7 @@ export function activate(context: vscode.ExtensionContext) {
     // then refresh any affected alias preview documents.
     treeView.onDidChangeCheckboxState((event) => {
       treeDataProvider.updateResourceCheckboxes(event);
-      refreshAliasPreviewsForCheckboxChanges(previewDocumentProvider, previewCache, treeDataProvider, event);
+      refreshAliasPreviewsForCheckboxChanges(previewDocumentProvider, helmTemplateCache, treeDataProvider, event);
     }),
     // Warm the preview cache once, when the Helmingway view is first revealed.
     treeView.onDidChangeVisibility(async (event) => {
@@ -64,7 +64,7 @@ export function activate(context: vscode.ExtensionContext) {
       }
 
       hasInitializedPreview = true;
-      await refreshPreview(treeDataProvider, previewCache);
+      await refreshPreview(treeDataProvider, helmTemplateCache);
     }),
   );
 }
@@ -76,11 +76,11 @@ export function deactivate() {}
  */
 async function openAliasPreview(
   previewDocumentProvider: HelmingwayPreviewDocumentProvider,
-  previewCache: HelmTemplateCache,
+  helmTemplateCache: HelmTemplateCache,
   treeDataProvider: HelmingwayTreeDataProvider,
   node: AliasTreeNode,
 ): Promise<void> {
-  const previewContent = getFilteredAliasPreviewContent(previewCache, treeDataProvider, node);
+  const previewContent = getFilteredAliasPreviewContent(helmTemplateCache, treeDataProvider, node);
   if (previewContent === undefined) {
     return;
   }
@@ -93,7 +93,7 @@ async function openAliasPreview(
  */
 async function compareSelectedAliases(
   previewDocumentProvider: HelmingwayPreviewDocumentProvider,
-  previewCache: HelmTemplateCache,
+  helmTemplateCache: HelmTemplateCache,
   selectedAliases: AliasTreeNode[],
 ): Promise<void> {
   if (selectedAliases.length !== 2) {
@@ -102,12 +102,12 @@ async function compareSelectedAliases(
   }
 
   const [leftAlias, rightAlias] = selectedAliases;
-  const leftContent = getRenderedAliasContent(previewCache, leftAlias);
+  const leftContent = getRenderedAliasContent(helmTemplateCache, leftAlias);
   if (!leftContent) {
     return;
   }
 
-  const rightContent = getRenderedAliasContent(previewCache, rightAlias);
+  const rightContent = getRenderedAliasContent(helmTemplateCache, rightAlias);
   if (!rightContent) {
     return;
   }
@@ -120,7 +120,7 @@ async function compareSelectedAliases(
  */
 async function refreshPreview(
   treeDataProvider: HelmingwayTreeDataProvider,
-  previewCache: HelmTemplateCache,
+  helmTemplateCache: HelmTemplateCache,
 ): Promise<void> {
   const workspaceFolder = getPrimaryWorkspaceFolder();
   if (!workspaceFolder) {
@@ -132,7 +132,7 @@ async function refreshPreview(
     provider: treeDataProvider,
     workspacePath: workspaceFolder.uri.fsPath,
     config: currentConfig,
-    cache: previewCache,
+    cache: helmTemplateCache,
   });
 }
 
@@ -156,7 +156,7 @@ async function closeAllPreviews(): Promise<void> {
 
 function refreshAliasPreviewsForCheckboxChanges(
   previewDocumentProvider: HelmingwayPreviewDocumentProvider,
-  previewCache: HelmTemplateCache,
+  helmTemplateCache: HelmTemplateCache,
   treeDataProvider: HelmingwayTreeDataProvider,
   event: vscode.TreeCheckboxChangeEvent<HelmingwayTreeNode>,
 ): void {
@@ -177,16 +177,16 @@ function refreshAliasPreviewsForCheckboxChanges(
   }
 
   for (const aliasNode of aliasesToRefresh.values()) {
-    void openAliasPreview(previewDocumentProvider, previewCache, treeDataProvider, aliasNode);
+    void openAliasPreview(previewDocumentProvider, helmTemplateCache, treeDataProvider, aliasNode);
   }
 }
 
 function getFilteredAliasPreviewContent(
-  previewCache: HelmTemplateCache,
+  helmTemplateCache: HelmTemplateCache,
   treeDataProvider: HelmingwayTreeDataProvider,
   node: AliasTreeNode,
 ): string | undefined {
-  const content = getRenderedAliasContent(previewCache, node);
+  const content = getRenderedAliasContent(helmTemplateCache, node);
   if (content === undefined) {
     return undefined;
   }
@@ -204,10 +204,10 @@ function getFilteredAliasPreviewContent(
  * If the content is not available, show an information or error message and return undefined.
  */
 function getRenderedAliasContent(
-  previewCache: HelmTemplateCache,
+  helmTemplateCache: HelmTemplateCache,
   node: AliasTreeNode,
 ): string | undefined {
-  const entry = previewCache.get(node.chartName, node.aliasName);
+  const entry = helmTemplateCache.get(node.chartName, node.aliasName);
   if (!entry || entry.status === "idle") {
     vscode.window.showInformationMessage(
       `Helmingway: ${node.chartName}/${node.aliasName} is not rendered yet. Run Refresh first.`,
