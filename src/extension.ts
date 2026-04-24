@@ -6,7 +6,6 @@ import { HelmingwayTreeDataProvider } from "./providers/tree-data-provider";
 import { getPrimaryWorkspaceFolder } from "./vscode-workspace";
 import { joinRenderedResourceContent } from "./rendered-resource";
 import { refreshPreview as refreshPreviewInternal } from "./preview-refresh";
-import { showPreviewDocument } from "./preview-document";
 
 export function activate(context: vscode.ExtensionContext) {
   console.log("Helmingway extension is now active.");
@@ -83,11 +82,7 @@ async function openAliasPreview(
     return;
   }
 
-  await showPreviewDocument({
-    previewDocumentProvider,
-    content: previewContent,
-    path: `/${node.aliasName}.yaml`,
-  });
+  await previewDocumentProvider.showPreviewDocument(`/${node.aliasName}.yaml`, previewContent);
 }
 
 /**

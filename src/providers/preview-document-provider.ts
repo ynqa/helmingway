@@ -17,4 +17,20 @@ export class HelmingwayPreviewDocumentProvider implements vscode.TextDocumentCon
   provideTextDocumentContent(uri: vscode.Uri): string {
     return this.documents.get(uri.toString()) ?? "";
   }
+
+  async showPreviewDocument(path: string, content: string): Promise<void> {
+    const uri = vscode.Uri.from({
+      scheme: "helmingway-preview",
+      path,
+    });
+
+    this.setContent(uri, content);
+
+    const document = await vscode.workspace.openTextDocument(uri);
+    await vscode.languages.setTextDocumentLanguage(document, "yaml");
+    await vscode.window.showTextDocument(document, {
+      preview: false,
+      viewColumn: vscode.window.activeTextEditor?.viewColumn,
+    });
+  }
 }
