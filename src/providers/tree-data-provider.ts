@@ -82,7 +82,7 @@ export class HelmingwayTreeDataProvider implements vscode.TreeDataProvider<Helmi
       const collapsibleState =
         resources.length > 0 ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.None;
       const item = new vscode.TreeItem(element.aliasName, collapsibleState);
-      const entry = this.renderStore.getEntry(element.chartName, element.aliasName);
+      const entry = this.renderStore.getHelmTemplateCacheEntry(element.chartName, element.aliasName);
       const status = entry?.status ?? "idle";
       const presentation = helmTemplateStatusPresentation[status];
       const selectedCount = this.getSelectedResources(element).length;
@@ -131,7 +131,7 @@ export class HelmingwayTreeDataProvider implements vscode.TreeDataProvider<Helmi
   }
 
   private getResourceChildren(node: AliasTreeNode): ResourceTreeNode[] {
-    const entry = this.renderStore.getEntry(node.chartName, node.aliasName);
+    const entry = this.renderStore.getHelmTemplateCacheEntry(node.chartName, node.aliasName);
     if (entry?.status !== "rendered" || entry.content === undefined) {
       return [];
     }

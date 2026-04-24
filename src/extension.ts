@@ -127,7 +127,7 @@ async function refreshPreview(
   }
 
   const currentConfig = await treeDataProvider.refreshConfig();
-  await helmService.refresh({
+  await helmService.rebuildHelmTemplateCache({
     provider: treeDataProvider,
     workspacePath: workspaceFolder.uri.fsPath,
     config: currentConfig,
@@ -205,7 +205,7 @@ function getRenderedAliasContent(
   helmService: HelmService,
   node: AliasTreeNode,
 ): string | undefined {
-  const entry = helmService.getEntry(node.chartName, node.aliasName);
+  const entry = helmService.getHelmTemplateCacheEntry(node.chartName, node.aliasName);
   if (!entry || entry.status === "idle") {
     vscode.window.showInformationMessage(
       `Helmingway: ${node.chartName}/${node.aliasName} is not rendered yet. Run Refresh first.`,

@@ -9,13 +9,13 @@ type RefreshableProvider = {
   refresh(): void;
 };
 
-type RefreshPreviewFailure = {
+type RebuildHelmTemplateCacheFailure = {
   chartName: string;
   aliasName: string;
   message: string;
 };
 
-type RefreshPreviewOptions = {
+type RebuildHelmTemplateCacheOptions = {
   provider: RefreshableProvider;
   workspacePath: string;
   config: HelmingwayConfig;
@@ -30,11 +30,11 @@ export type { HelmTemplateEntry, HelmTemplateStatus } from "./template-cache";
 export class HelmService {
   private readonly cache = new HelmTemplateCache();
 
-  async refresh({
+  async rebuildHelmTemplateCache({
     provider,
     workspacePath,
     config,
-  }: RefreshPreviewOptions): Promise<void> {
+  }: RebuildHelmTemplateCacheOptions): Promise<void> {
     this.cache.prune(config);
     provider.refresh();
 
@@ -58,7 +58,7 @@ export class HelmService {
       async (progress) => {
         let completedCount = 0;
 
-        const failures: Array<RefreshPreviewFailure | undefined> = await Promise.all(
+        const failures: Array<RebuildHelmTemplateCacheFailure | undefined> = await Promise.all(
           renderTargets.map(async (target) => {
             const version = this.cache.begin(target.chart.name, target.alias.name);
             provider.refresh();
@@ -76,7 +76,7 @@ export class HelmService {
                 chartName: target.chart.name,
                 aliasName: target.alias.name,
                 message,
-              } satisfies RefreshPreviewFailure;
+              } satisfies RebuildHelmTemplateCacheFailure;
             } finally {
               completedCount += 1;
               progress.report({
@@ -88,7 +88,7 @@ export class HelmService {
         );
 
         const failedAliases = failures.filter(
-          (failure): failure is RefreshPreviewFailure => failure !== undefined,
+          (failure): failure is RebuildHelmTemplateCacheFailure => failure !== undefined,
         );
 
         if (failedAliases.length === 0) {
@@ -111,7 +111,7 @@ export class HelmService {
     );
   }
 
-  getEntry(chartName: string, aliasName: string): HelmTemplateEntry | undefined {
+  getHelmTemplateCacheEntry(chartName: string, aliasName: string): HelmTemplateEntry | undefined {
     return this.cache.get(chartName, aliasName);
   }
 }
