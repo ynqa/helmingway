@@ -3,6 +3,7 @@ import * as path from "node:path";
 import * as vscode from "vscode";
 import { getPrimaryWorkspaceFolder } from "../vscode-workspace";
 import {
+  type ChartTreeNode,
   type HelmingwayConfig,
   type HelmingwayTreeNode,
   loadHelmingwayConfig,
@@ -92,57 +93,9 @@ export class HelmingwayTreeDataProvider implements vscode.TreeDataProvider<Helmi
     );
   }
 
-  getTreeItem(element: HelmingwayTreeNode): vscode.TreeItem {
-    if (element.type === "chart") {
-      const item = new vscode.TreeItem(
-        element.chartName,
-        vscode.TreeItemCollapsibleState.Collapsed,
-      );
-      item.description = element.chartPath;
-      item.iconPath = new vscode.ThemeIcon("package");
-      return item;
-    } else if (element.type === "release") {
-      const resources = this.getResourceChildren(element);
-      const collapsibleState =
-        resources.length > 0
-          ? vscode.TreeItemCollapsibleState.Collapsed
-          : vscode.TreeItemCollapsibleState.None;
-      const item = new vscode.TreeItem(element.releaseName, collapsibleState);
-      const entry = this.renderStore.getHelmTemplateCacheEntry(
-        element.chartName,
-        element.releaseName,
-      );
-      const status = entry?.status ?? "idle";
-      const checkedCount = this.getCheckedResources(element).length;
-      item.contextValue = "release";
-      item.iconPath = helmTemplateStatusIcon[status];
-      item.description = checkedCount > 0 ? `${checkedCount} checked` : status;
-      if (entry?.helmTemplateErrorMessage) {
-        item.tooltip = entry.helmTemplateErrorMessage;
-      }
-      item.command = {
-        command: "helmingway.openReleasePreview",
-        title: "Open Preview",
-        arguments: [element],
-      };
-      return item;
-    } else if (element.type === "resource") {
-      const item = new vscode.TreeItem(
-        element.resource.resourceLabel,
-        vscode.TreeItemCollapsibleState.None,
-      );
-      item.id = `${element.chartName}/${element.releaseName}/${element.resource.resourceId}`;
-      item.contextValue = "resource";
-      item.iconPath = new vscode.ThemeIcon("symbol-object");
-      item.checkboxState = this.resourceExclusions.isChecked(element)
-        ? vscode.TreeItemCheckboxState.Checked
-        : vscode.TreeItemCheckboxState.Unchecked;
-      return item;
-    }
-
-    throw new Error(`Unhandled tree node type: ${JSON.stringify(element)}`);
-  }
-
+  /**
+   * Return child nodes for the requested tree level.
+   */
   async getChildren(element?: HelmingwayTreeNode): Promise<HelmingwayTreeNode[]> {
     if (!element) {
       const currentConfig = await this.loadConfig();
@@ -161,6 +114,69 @@ export class HelmingwayTreeDataProvider implements vscode.TreeDataProvider<Helmi
     }
 
     return [];
+  }
+
+  /**
+   * Convert a tree node into the VS Code TreeItem used for display.
+   */
+  getTreeItem(element: HelmingwayTreeNode): vscode.TreeItem {
+    if (element.type === "chart") {
+      return this.getChartTreeItem(element);
+    } else if (element.type === "release") {
+      return this.getReleaseTreeItem(element);
+    } else if (element.type === "resource") {
+      return this.getResourceTreeItem(element);
+    }
+
+    throw new Error(`Unhandled tree node type: ${JSON.stringify(element)}`);
+  }
+
+  private getChartTreeItem(element: ChartTreeNode): vscode.TreeItem {
+    const item = new vscode.TreeItem(element.chartName, vscode.TreeItemCollapsibleState.Collapsed);
+    item.description = element.chartPath;
+    item.iconPath = new vscode.ThemeIcon("package");
+    return item;
+  }
+
+  private getReleaseTreeItem(element: ReleaseTreeNode): vscode.TreeItem {
+    const resources = this.getResourceChildren(element);
+    const collapsibleState =
+      resources.length > 0
+        ? vscode.TreeItemCollapsibleState.Collapsed
+        : vscode.TreeItemCollapsibleState.None;
+    const item = new vscode.TreeItem(element.releaseName, collapsibleState);
+    const entry = this.renderStore.getHelmTemplateCacheEntry(
+      element.chartName,
+      element.releaseName,
+    );
+    const status = entry?.status ?? "idle";
+    const checkedCount = this.getCheckedResources(element).length;
+    item.contextValue = "release";
+    item.iconPath = helmTemplateStatusIcon[status];
+    item.description = checkedCount > 0 ? `${checkedCount} checked` : status;
+    if (entry?.helmTemplateErrorMessage) {
+      item.tooltip = entry.helmTemplateErrorMessage;
+    }
+    item.command = {
+      command: "helmingway.openReleasePreview",
+      title: "Open Preview",
+      arguments: [element],
+    };
+    return item;
+  }
+
+  private getResourceTreeItem(element: ResourceTreeNode): vscode.TreeItem {
+    const item = new vscode.TreeItem(
+      element.resource.resourceLabel,
+      vscode.TreeItemCollapsibleState.None,
+    );
+    item.id = `${element.chartName}/${element.releaseName}/${element.resource.resourceId}`;
+    item.contextValue = "resource";
+    item.iconPath = new vscode.ThemeIcon("symbol-object");
+    item.checkboxState = this.resourceExclusions.isChecked(element)
+      ? vscode.TreeItemCheckboxState.Checked
+      : vscode.TreeItemCheckboxState.Unchecked;
+    return item;
   }
 
   /**
