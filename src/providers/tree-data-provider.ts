@@ -68,6 +68,9 @@ export class HelmingwayTreeDataProvider implements vscode.TreeDataProvider<Helmi
     return this.currentConfig;
   }
 
+  /**
+   * Apply VS Code checkbox changes to the resource filter state.
+   */
   updateResourceCheckboxes(event: vscode.TreeCheckboxChangeEvent<HelmingwayTreeNode>): void {
     for (const [node, state] of event.items) {
       if (node.type !== "resource") {
@@ -80,6 +83,9 @@ export class HelmingwayTreeDataProvider implements vscode.TreeDataProvider<Helmi
     this.refresh();
   }
 
+  /**
+   * Get resources whose tree checkboxes are currently checked for a release.
+   */
   getCheckedResources(node: ReleaseTreeNode): ResourceTreeNode[] {
     return this.getResourceChildren(node).filter((resourceNode) =>
       this.resourceExclusions.isChecked(resourceNode),
