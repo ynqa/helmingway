@@ -35,7 +35,7 @@ const helmTemplateStatusIcon = {
  */
 export class HelmingwayTreeDataProvider implements vscode.TreeDataProvider<HelmingwayTreeNode> {
   private readonly onDidChangeTreeDataEmitter = new vscode.EventEmitter<HelmingwayTreeNode | undefined>();
-  private readonly selectedResourceKeysByRelease = new Map<string, Set<string>>();
+  private readonly resourceExclusions = new ResourceExclusionStore();
   private currentConfig: HelmingwayConfig = {};
 
   constructor(private readonly renderStore: HelmService) {}
@@ -52,31 +52,18 @@ export class HelmingwayTreeDataProvider implements vscode.TreeDataProvider<Helmi
         continue;
       }
 
-      const releaseKey = toReleaseSelectionKey(node);
-      const selectedKeys = this.selectedResourceKeysByRelease.get(releaseKey) ?? new Set<string>();
-      if (state === vscode.TreeItemCheckboxState.Checked) {
-        selectedKeys.add(node.resource.resourceId);
-      } else {
-        selectedKeys.delete(node.resource.resourceId);
-      }
-
-      if (selectedKeys.size === 0) {
-        this.selectedResourceKeysByRelease.delete(releaseKey);
-      } else {
-        this.selectedResourceKeysByRelease.set(releaseKey, selectedKeys);
-      }
+      this.resourceExclusions.updateResourceCheckbox(node, state);
     }
 
     this.refresh();
   }
 
   getSelectedResources(node: ReleaseTreeNode): ResourceTreeNode[] {
-    const selectedKeys = this.selectedResourceKeysByRelease.get(toReleaseSelectionKey(node));
-    if (!selectedKeys || selectedKeys.size === 0) {
-      return [];
-    }
+    return this.getResourceChildren(node).filter((resourceNode) => this.resourceExclusions.isSelected(resourceNode));
+  }
 
-    return this.getResourceChildren(node).filter((resourceNode) => selectedKeys.has(resourceNode.resource.resourceId));
+  hasExcludedResources(node: ReleaseTreeNode): boolean {
+    return this.resourceExclusions.hasExcludedResources(node);
   }
 
   async refreshConfig(): Promise<HelmingwayConfig> {
@@ -157,7 +144,36 @@ export class HelmingwayTreeDataProvider implements vscode.TreeDataProvider<Helmi
   }
 
   private isResourceSelected(node: ResourceTreeNode): boolean {
-    return this.selectedResourceKeysByRelease.get(toReleaseSelectionKey(node))?.has(node.resource.resourceId) ?? false;
+    return this.resourceExclusions.isSelected(node);
+  }
+}
+
+class ResourceExclusionStore {
+  private readonly excludedResourceKeysByRelease = new Map<string, Set<string>>();
+
+  updateResourceCheckbox(node: ResourceTreeNode, state: vscode.TreeItemCheckboxState): void {
+    const releaseKey = toReleaseSelectionKey(node);
+    const excludedKeys = this.excludedResourceKeysByRelease.get(releaseKey) ?? new Set<string>();
+
+    if (state === vscode.TreeItemCheckboxState.Checked) {
+      excludedKeys.delete(node.resource.resourceId);
+    } else {
+      excludedKeys.add(node.resource.resourceId);
+    }
+
+    if (excludedKeys.size === 0) {
+      this.excludedResourceKeysByRelease.delete(releaseKey);
+    } else {
+      this.excludedResourceKeysByRelease.set(releaseKey, excludedKeys);
+    }
+  }
+
+  isSelected(node: ResourceTreeNode): boolean {
+    return !this.excludedResourceKeysByRelease.get(toReleaseSelectionKey(node))?.has(node.resource.resourceId);
+  }
+
+  hasExcludedResources(node: Pick<ReleaseTreeNode, "chartName" | "releaseName">): boolean {
+    return this.excludedResourceKeysByRelease.has(toReleaseSelectionKey(node));
   }
 }
 

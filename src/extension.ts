@@ -190,7 +190,7 @@ function getFilteredReleasePreviewContent(
   }
 
   const selectedResources = treeDataProvider.getSelectedResources(node);
-  if (selectedResources.length === 0) {
+  if (!treeDataProvider.hasExcludedResources(node)) {
     return content;
   }
 
