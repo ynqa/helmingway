@@ -8,7 +8,7 @@ import {
   type AliasTreeNode,
   type HelmingwayConfig,
   type HelmingwayTreeNode,
-  parseRenderedResources,
+  parsePreviewResources,
   parseChartSource,
   type RawHelmingwayConfig,
   type ResourceTreeNode,
@@ -148,7 +148,7 @@ export class HelmingwayTreeDataProvider implements vscode.TreeDataProvider<Helmi
       return [];
     }
 
-    return parseRenderedResources(entry.content).map((resource) => ({
+    return parsePreviewResources(entry.content).map((resource) => ({
       type: "resource",
       chartName: node.chartName,
       aliasName: node.aliasName,

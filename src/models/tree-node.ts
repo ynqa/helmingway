@@ -1,6 +1,6 @@
 /* eslint-disable sort-imports */
 import type { ChartConfig } from "./config";
-import type { PreviewResource } from "./rendered-resource";
+import type { PreviewResource } from "./preview-resource";
 import { formatChartSource } from "./chart-source";
 
 export type ChartTreeNode = {

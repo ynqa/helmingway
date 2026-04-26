@@ -36,7 +36,7 @@ type KubernetesResourceDocument = {
 /**
  * Split rendered Kubernetes YAML into addressable resource documents.
  */
-export function parseRenderedResources(content: string): PreviewResource[] {
+export function parsePreviewResources(content: string): PreviewResource[] {
   const resources = parseAllDocuments(content)
     .map((document) => {
       const value = document.toJSON() as KubernetesResourceDocument | null;
@@ -78,7 +78,7 @@ export function parseRenderedResources(content: string): PreviewResource[] {
   });
 }
 
-export function joinRenderedResourceContent(resources: PreviewResource[]): string {
+export function joinPreviewResourceManifests(resources: PreviewResource[]): string {
   return `${resources.map((resource) => `---\n${resource.manifestYaml}`).join("\n")}\n`;
 }
 

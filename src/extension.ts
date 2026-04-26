@@ -4,7 +4,7 @@ import {
   type AliasTreeNode,
   type HelmingwayTreeNode,
   isAliasNode,
-  joinRenderedResourceContent,
+  joinPreviewResourceManifests,
 } from "./models";
 import { HelmService } from "./helm/service";
 import { HelmingwayPreviewDocumentProvider } from "./providers/preview-document-provider";
@@ -194,7 +194,7 @@ function getFilteredAliasPreviewContent(
     return content;
   }
 
-  return joinRenderedResourceContent(selectedResources.map((resourceNode) => resourceNode.resource));
+  return joinPreviewResourceManifests(selectedResources.map((resourceNode) => resourceNode.resource));
 }
 
 /**
