@@ -86,6 +86,24 @@ export class HelmingwayTreeDataProvider implements vscode.TreeDataProvider<Helmi
   }
 
   /**
+   * Toggle every resource checkbox for a release.
+   */
+  toggleReleaseResources(node: ReleaseTreeNode): boolean {
+    const resources = this.getResourceChildren(node);
+    if (resources.length === 0) {
+      return false;
+    }
+
+    const shouldCheckAll = resources.some(
+      (resourceNode) => !this.resourceExclusions.isChecked(resourceNode),
+    );
+    this.resourceExclusions.updateReleaseResources(node, resources, shouldCheckAll);
+    this.refresh();
+
+    return true;
+  }
+
+  /**
    * Get render status and parsed manifest resources for a release.
    */
   getReleaseManifestView(node: ReleaseTreeNode): ReleaseManifestView {
@@ -225,6 +243,24 @@ class ResourceExclusionStore {
     } else {
       this.excludedResourceKeysByRelease.set(releaseKey, excludedKeys);
     }
+  }
+
+  updateReleaseResources(
+    node: ReleaseTreeNode,
+    resources: ResourceTreeNode[],
+    checked: boolean,
+  ): void {
+    const releaseKey = this.getReleaseKey(node);
+
+    if (checked) {
+      this.excludedResourceKeysByRelease.delete(releaseKey);
+      return;
+    }
+
+    this.excludedResourceKeysByRelease.set(
+      releaseKey,
+      new Set(resources.map((resourceNode) => resourceNode.resource.resourceId)),
+    );
   }
 
   isChecked(node: ResourceTreeNode): boolean {

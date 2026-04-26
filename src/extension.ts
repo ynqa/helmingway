@@ -34,6 +34,18 @@ export function activate(context: vscode.ExtensionContext) {
 
       return openReleasePreview(previewDocumentProvider, treeDataProvider, node);
     }),
+    vscode.commands.registerCommand("helmingway.toggleReleaseResources", (node) => {
+      if (!isReleaseNode(node)) {
+        return;
+      }
+
+      const didToggle = treeDataProvider.toggleReleaseResources(node);
+      if (!didToggle) {
+        return;
+      }
+
+      return openReleasePreview(previewDocumentProvider, treeDataProvider, node);
+    }),
     vscode.commands.registerCommand("helmingway.compareSelectedReleases", () =>
       compareSelectedReleases(previewDocumentProvider, treeDataProvider, selectedReleases),
     ),
