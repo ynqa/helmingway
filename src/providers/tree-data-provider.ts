@@ -96,7 +96,9 @@ export class HelmingwayTreeDataProvider implements vscode.TreeDataProvider<Helmi
       errorMessage: entry?.helmTemplateErrorMessage,
       resources:
         entry?.status === "rendered" && entry.content !== undefined
-          ? this.getResourceChildren(node)
+          ? this.getResourceChildren(node).filter((resourceNode) =>
+              this.resourceExclusions.isChecked(resourceNode),
+            )
           : [],
     };
   }
@@ -158,9 +160,7 @@ export class HelmingwayTreeDataProvider implements vscode.TreeDataProvider<Helmi
       element.releaseName,
     );
     const status = entry?.status ?? "idle";
-    const checkedCount = this.getReleaseManifestView(element).resources.filter((resourceNode) =>
-      this.resourceExclusions.isChecked(resourceNode),
-    ).length;
+    const checkedCount = this.getReleaseManifestView(element).resources.length;
     item.contextValue = "release";
     item.iconPath = helmTemplateStatusIcon[status];
     item.description = checkedCount > 0 ? `${checkedCount} checked` : status;
