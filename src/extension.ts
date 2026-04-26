@@ -57,7 +57,7 @@ export function activate(context: vscode.ExtensionContext) {
     // then refresh any affected release preview documents.
     treeView.onDidChangeCheckboxState((event) => {
       treeDataProvider.updateResourceCheckboxes(event);
-      refreshReleasePreviewsForCheckboxChanges(
+      openReleasePreviewsForCheckboxChanges(
         previewDocumentProvider,
         helmService,
         treeDataProvider,
@@ -77,23 +77,6 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 export function deactivate() {}
-
-/**
- * Open a preview document for the given release node.
- */
-async function openReleasePreview(
-  previewDocumentProvider: HelmingwayPreviewDocumentProvider,
-  helmService: HelmService,
-  treeDataProvider: HelmingwayTreeDataProvider,
-  node: ReleaseTreeNode,
-): Promise<void> {
-  const previewContent = getFilteredReleasePreviewContent(helmService, treeDataProvider, node);
-  if (previewContent === undefined) {
-    return;
-  }
-
-  await previewDocumentProvider.showReleasePreview(node, previewContent);
-}
 
 /**
  * Compare the rendered content of the two selected releases in a diff editor.
@@ -165,7 +148,28 @@ async function closeAllPreviews(): Promise<void> {
   await vscode.window.tabGroups.close(previewTabs);
 }
 
-function refreshReleasePreviewsForCheckboxChanges(
+
+/**
+ * Open a preview document for the given release node.
+ */
+async function openReleasePreview(
+  previewDocumentProvider: HelmingwayPreviewDocumentProvider,
+  helmService: HelmService,
+  treeDataProvider: HelmingwayTreeDataProvider,
+  node: ReleaseTreeNode,
+): Promise<void> {
+  const previewContent = getFilteredReleasePreviewContent(helmService, treeDataProvider, node);
+  if (previewContent === undefined) {
+    return;
+  }
+
+  await previewDocumentProvider.showReleasePreview(node, previewContent);
+}
+
+/**
+ * Reopen previews for releases whose resource checkbox state changed.
+ */
+function openReleasePreviewsForCheckboxChanges(
   previewDocumentProvider: HelmingwayPreviewDocumentProvider,
   helmService: HelmService,
   treeDataProvider: HelmingwayTreeDataProvider,
