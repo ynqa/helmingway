@@ -5,14 +5,12 @@ helm:
   - name: example
     # Chart.yaml を含む chart ルートへのパスです。
     source: ./charts/example
-    # alias で上書きしない場合に使う既定の release name です。
-    releaseName: example
-    # alias で上書きしない場合に使う既定の namespace です。
+    # release で上書きしない場合に使う既定の namespace です。
     namespace: default
 
-    # UI から選択できる Helm 用 alias の一覧です。
-    # 各 alias は values file とインライン values の組み合わせを表します。
-    aliases:
+    # UI から選択できる Helm release の一覧です。
+    # 各 release は release name、values file、インライン values の組み合わせを表します。
+    releases:
     - name: dev
       # `helm template -f` に渡す values file の一覧です。
       valueFiles:

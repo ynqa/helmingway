@@ -9,23 +9,23 @@ export type ChartTreeNode = {
   chartPath: string;
 };
 
-export type AliasTreeNode = {
-  type: "alias";
+export type ReleaseTreeNode = {
+  type: "release";
   chartName: string;
-  aliasName: string;
+  releaseName: string;
 };
 
 export type ResourceTreeNode = {
   type: "resource";
   chartName: string;
-  aliasName: string;
+  releaseName: string;
   resource: PreviewResource;
 };
 
-export type HelmingwayTreeNode = ChartTreeNode | AliasTreeNode | ResourceTreeNode;
+export type HelmingwayTreeNode = ChartTreeNode | ReleaseTreeNode | ResourceTreeNode;
 
-export function isAliasNode(node: HelmingwayTreeNode): node is AliasTreeNode {
-  return node.type === "alias";
+export function isReleaseNode(node: HelmingwayTreeNode): node is ReleaseTreeNode {
+  return node.type === "release";
 }
 
 /**
@@ -40,12 +40,12 @@ export function toChartTreeNode(chart: ChartConfig): ChartTreeNode {
 }
 
 /**
- * Convert chart config aliases into tree nodes for the sidebar.
+ * Convert chart config releases into tree nodes for the sidebar.
  */
-export function toAliasTreeNodes(chart: ChartConfig): AliasTreeNode[] {
-  return (chart.aliases ?? []).map((alias) => ({
-    type: "alias",
+export function toReleaseTreeNodes(chart: ChartConfig): ReleaseTreeNode[] {
+  return (chart.releases ?? []).map((release) => ({
+    type: "release",
     chartName: chart.name,
-    aliasName: alias.name,
+    releaseName: release.name,
   }));
 }

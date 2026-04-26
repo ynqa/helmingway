@@ -5,44 +5,45 @@ import * as path from "node:path";
 import { execFile as execFileCallback } from "node:child_process";
 import { promisify } from "node:util";
 import { stringify } from "yaml";
-import type { AliasConfig, ChartConfig } from "../models";
+import type { ChartConfig, ReleaseConfig } from "../models";
 
 const execFile = promisify(execFileCallback);
 
 type RunHelmTemplateOptions = {
   workspacePath: string;
   chart: ChartConfig;
-  alias: AliasConfig;
+  release: ReleaseConfig;
 };
 
 /**
- * Run `helm template` for the given chart and alias, then return the rendered YAML.
+ * Run `helm template` for the given chart and release, then return the rendered YAML.
  */
 export async function runHelmTemplate({
   workspacePath,
   chart,
-  alias,
+  release,
 }: RunHelmTemplateOptions): Promise<string> {
   const chartPath = resolveChartTemplateArg(workspacePath, chart);
-  const args = ["template", chart.releaseName ?? chart.name, chartPath];
+  const args = ["template", release.name, chartPath];
   const temporaryPaths: string[] = [];
 
   try {
-    if (chart.namespace) {
-      args.push("--namespace", chart.namespace);
+    const namespace = release.namespace ?? chart.namespace;
+    if (namespace) {
+      args.push("--namespace", namespace);
     }
 
-    for (const valueFile of alias.valueFiles ?? []) {
+    for (const valueFile of release.valueFiles ?? []) {
       args.push("--values", resolveValuesFilePath(workspacePath, valueFile));
     }
 
     // If there are inline values, write them to a temporary file and add it to the arguments.
-    if (alias.values && Object.keys(alias.values).length > 0) {
+    if (release.values && Object.keys(release.values).length > 0) {
       const temporaryPath = path.join(
         os.tmpdir(),
-        `helmingway-${chart.name}-${alias.name}-${Date.now()}.yaml`,
+        `helmingway-${chart.name}-${release.name}-${Date.now()}.yaml`,
       );
-      await fs.writeFile(temporaryPath, stringify(alias.values), "utf8");
+      await fs.writeFile(temporaryPath, stringify(release.values), "utf8");
       temporaryPaths.push(temporaryPath);
       args.push("--values", temporaryPath);
     }
@@ -96,7 +97,7 @@ function resolveChartTemplateArg(workspacePath: string, chart: ChartConfig): str
 }
 
 /**
- * Resolve alias values file path from the workspace root.
+ * Resolve release values file path from the workspace root.
  */
 function resolveValuesFilePath(workspacePath: string, valueFile: string): string {
   return path.resolve(workspacePath, valueFile);

@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import type { AliasTreeNode } from "../models";
+import type { ReleaseTreeNode } from "../models";
 
 /**
  * Provide read-only preview content through `helmingway-preview` virtual document scheme.
@@ -20,12 +20,12 @@ export class HelmingwayPreviewDocumentProvider implements vscode.TextDocumentCon
   }
 
   /**
-   * Open a new preview document for the given alias node and content, and show it in the editor.
+   * Open a new preview document for the given release node and content, and show it in the editor.
    */
-  async showAliasPreview(node: AliasTreeNode, content: string): Promise<void> {
+  async showReleasePreview(node: ReleaseTreeNode, content: string): Promise<void> {
     const uri = vscode.Uri.from({
       scheme: "helmingway-preview",
-      path: `/${node.aliasName}.yaml`,
+      path: `/${node.releaseName}.yaml`,
     });
 
     this.setContent(uri, content);
@@ -39,21 +39,21 @@ export class HelmingwayPreviewDocumentProvider implements vscode.TextDocumentCon
   }
 
   /**
-   * Open a side-by-side diff view comparing the two given alias nodes and their contents.
+   * Open a side-by-side diff view comparing the two given release nodes and their contents.
    */
-  async showAliasComparison(
-    leftNode: AliasTreeNode,
+  async showReleaseComparison(
+    leftNode: ReleaseTreeNode,
     leftContent: string,
-    rightNode: AliasTreeNode,
+    rightNode: ReleaseTreeNode,
     rightContent: string,
   ): Promise<void> {
     const leftUri = vscode.Uri.from({
       scheme: "helmingway-preview",
-      path: `/compare/${leftNode.chartName}-${leftNode.aliasName}.yaml`,
+      path: `/compare/${leftNode.chartName}-${leftNode.releaseName}.yaml`,
     });
     const rightUri = vscode.Uri.from({
       scheme: "helmingway-preview",
-      path: `/compare/${rightNode.chartName}-${rightNode.aliasName}.yaml`,
+      path: `/compare/${rightNode.chartName}-${rightNode.releaseName}.yaml`,
     });
 
     this.setContent(leftUri, leftContent);
@@ -63,7 +63,7 @@ export class HelmingwayPreviewDocumentProvider implements vscode.TextDocumentCon
       "vscode.diff",
       leftUri,
       rightUri,
-      `${leftNode.aliasName} ↔ ${rightNode.aliasName}`,
+      `${leftNode.releaseName} ↔ ${rightNode.releaseName}`,
     );
   }
 }

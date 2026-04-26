@@ -15,17 +15,17 @@ export type RawHelmingwayConfig = Omit<HelmingwayConfig, "helm"> & {
 export type ChartConfig = {
   name: string;
   source: HelmChartSource;
-  releaseName?: string;
   namespace?: string;
-  aliases?: AliasConfig[];
+  releases?: ReleaseConfig[];
 };
 
 export type RawChartConfig = Omit<ChartConfig, "source"> & {
   source: string;
 };
 
-export type AliasConfig = {
+export type ReleaseConfig = {
   name: string;
+  namespace?: string;
   valueFiles?: string[];
   values?: Record<string, unknown>;
 };
@@ -41,13 +41,13 @@ export function findChartConfig(
 }
 
 /**
- * Find an alias config by chart name and alias name.
+ * Find a release config by chart name and release name.
  */
-export function findAliasConfig(
+export function findReleaseConfig(
   config: HelmingwayConfig,
   chartName: string,
-  aliasName: string,
-): AliasConfig | undefined {
+  releaseName: string,
+): ReleaseConfig | undefined {
   const chart = findChartConfig(config, chartName);
-  return chart?.aliases?.find((alias) => alias.name === aliasName);
+  return chart?.releases?.find((release) => release.name === releaseName);
 }

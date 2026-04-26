@@ -5,15 +5,15 @@ import * as vscode from "vscode";
 import { parse } from "yaml";
 import { getPrimaryWorkspaceFolder } from "../vscode-workspace";
 import {
-  type AliasTreeNode,
   type HelmingwayConfig,
   type HelmingwayTreeNode,
   parsePreviewResources,
   parseChartSource,
   type RawHelmingwayConfig,
+  type ReleaseTreeNode,
   type ResourceTreeNode,
-  toAliasTreeNodes,
   toChartTreeNode,
+  toReleaseTreeNodes,
 } from "../models";
 import { HelmService, type HelmTemplateStatus } from "../helm/service";
 
@@ -35,7 +35,7 @@ const helmTemplateStatusIcon = {
  */
 export class HelmingwayTreeDataProvider implements vscode.TreeDataProvider<HelmingwayTreeNode> {
   private readonly onDidChangeTreeDataEmitter = new vscode.EventEmitter<HelmingwayTreeNode | undefined>();
-  private readonly selectedResourceKeysByAlias = new Map<string, Set<string>>();
+  private readonly selectedResourceKeysByRelease = new Map<string, Set<string>>();
   private currentConfig: HelmingwayConfig = {};
 
   constructor(private readonly renderStore: HelmService) {}
@@ -52,8 +52,8 @@ export class HelmingwayTreeDataProvider implements vscode.TreeDataProvider<Helmi
         continue;
       }
 
-      const aliasKey = toAliasSelectionKey(node);
-      const selectedKeys = this.selectedResourceKeysByAlias.get(aliasKey) ?? new Set<string>();
+      const releaseKey = toReleaseSelectionKey(node);
+      const selectedKeys = this.selectedResourceKeysByRelease.get(releaseKey) ?? new Set<string>();
       if (state === vscode.TreeItemCheckboxState.Checked) {
         selectedKeys.add(node.resource.resourceId);
       } else {
@@ -61,17 +61,17 @@ export class HelmingwayTreeDataProvider implements vscode.TreeDataProvider<Helmi
       }
 
       if (selectedKeys.size === 0) {
-        this.selectedResourceKeysByAlias.delete(aliasKey);
+        this.selectedResourceKeysByRelease.delete(releaseKey);
       } else {
-        this.selectedResourceKeysByAlias.set(aliasKey, selectedKeys);
+        this.selectedResourceKeysByRelease.set(releaseKey, selectedKeys);
       }
     }
 
     this.refresh();
   }
 
-  getSelectedResources(node: AliasTreeNode): ResourceTreeNode[] {
-    const selectedKeys = this.selectedResourceKeysByAlias.get(toAliasSelectionKey(node));
+  getSelectedResources(node: ReleaseTreeNode): ResourceTreeNode[] {
+    const selectedKeys = this.selectedResourceKeysByRelease.get(toReleaseSelectionKey(node));
     if (!selectedKeys || selectedKeys.size === 0) {
       return [];
     }
@@ -90,29 +90,29 @@ export class HelmingwayTreeDataProvider implements vscode.TreeDataProvider<Helmi
       item.description = element.chartPath;
       item.iconPath = new vscode.ThemeIcon("package");
       return item;
-    } else if (element.type === "alias") {
+    } else if (element.type === "release") {
       const resources = this.getResourceChildren(element);
       const collapsibleState =
         resources.length > 0 ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.None;
-      const item = new vscode.TreeItem(element.aliasName, collapsibleState);
-      const entry = this.renderStore.getHelmTemplateCacheEntry(element.chartName, element.aliasName);
+      const item = new vscode.TreeItem(element.releaseName, collapsibleState);
+      const entry = this.renderStore.getHelmTemplateCacheEntry(element.chartName, element.releaseName);
       const status = entry?.status ?? "idle";
       const selectedCount = this.getSelectedResources(element).length;
-      item.contextValue = "alias";
+      item.contextValue = "release";
       item.iconPath = helmTemplateStatusIcon[status];
       item.description = selectedCount > 0 ? `${selectedCount} selected` : status;
       if (entry?.helmTemplateErrorMessage) {
         item.tooltip = entry.helmTemplateErrorMessage;
       }
       item.command = {
-        command: "helmingway.openAliasPreview",
+        command: "helmingway.openReleasePreview",
         title: "Open Preview",
         arguments: [element],
       };
       return item;
     } else if (element.type === "resource") {
       const item = new vscode.TreeItem(element.resource.resourceLabel, vscode.TreeItemCollapsibleState.None);
-      item.id = `${element.chartName}/${element.aliasName}/${element.resource.resourceId}`;
+      item.id = `${element.chartName}/${element.releaseName}/${element.resource.resourceId}`;
       item.contextValue = "resource";
       item.iconPath = new vscode.ThemeIcon("symbol-object");
       item.checkboxState = this.isResourceSelected(element)
@@ -132,18 +132,18 @@ export class HelmingwayTreeDataProvider implements vscode.TreeDataProvider<Helmi
 
     if (element.type === "chart") {
       const chart = (this.currentConfig.helm?.charts ?? []).find((chart) => chart.name === element.chartName);
-      return chart ? toAliasTreeNodes(chart) : [];
+      return chart ? toReleaseTreeNodes(chart) : [];
     }
 
-    if (element.type === "alias") {
+    if (element.type === "release") {
       return this.getResourceChildren(element);
     }
 
     return [];
   }
 
-  private getResourceChildren(node: AliasTreeNode): ResourceTreeNode[] {
-    const entry = this.renderStore.getHelmTemplateCacheEntry(node.chartName, node.aliasName);
+  private getResourceChildren(node: ReleaseTreeNode): ResourceTreeNode[] {
+    const entry = this.renderStore.getHelmTemplateCacheEntry(node.chartName, node.releaseName);
     if (entry?.status !== "rendered" || entry.content === undefined) {
       return [];
     }
@@ -151,18 +151,18 @@ export class HelmingwayTreeDataProvider implements vscode.TreeDataProvider<Helmi
     return parsePreviewResources(entry.content).map((resource) => ({
       type: "resource",
       chartName: node.chartName,
-      aliasName: node.aliasName,
+      releaseName: node.releaseName,
       resource,
     }));
   }
 
   private isResourceSelected(node: ResourceTreeNode): boolean {
-    return this.selectedResourceKeysByAlias.get(toAliasSelectionKey(node))?.has(node.resource.resourceId) ?? false;
+    return this.selectedResourceKeysByRelease.get(toReleaseSelectionKey(node))?.has(node.resource.resourceId) ?? false;
   }
 }
 
-function toAliasSelectionKey(node: Pick<AliasTreeNode, "chartName" | "aliasName">): string {
-  return `${node.chartName}/${node.aliasName}`;
+function toReleaseSelectionKey(node: Pick<ReleaseTreeNode, "chartName" | "releaseName">): string {
+  return `${node.chartName}/${node.releaseName}`;
 }
 
 /**
@@ -186,9 +186,8 @@ async function readHelmingwayConfig(): Promise<HelmingwayConfig> {
         charts: (raw.helm?.charts ?? []).map((chart) => ({
           name: chart.name,
           source: parseChartSource(chart.source),
-          releaseName: chart.releaseName,
           namespace: chart.namespace,
-          aliases: chart.aliases,
+          releases: chart.releases,
         })),
       },
     };

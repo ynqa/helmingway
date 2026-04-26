@@ -13,11 +13,11 @@
   "contributes": {
     "commands": [
       {
-        "command": "helmingway.openAliasPreview",
+        "command": "helmingway.openReleasePreview",
         "title": "Open Preview"
       },
       {
-        "command": "helmingway.compareSelectedAliases",
+        "command": "helmingway.compareSelectedReleases",
         "title": "Compare"
       },
       {
@@ -34,7 +34,7 @@
     "menus": {
       "commandPalette": [
         {
-          "command": "helmingway.openAliasPreview",
+          "command": "helmingway.openReleasePreview",
           "when": "false"
         },
         {
@@ -42,7 +42,7 @@
           "when": "false"
         },
         {
-          "command": "helmingway.compareSelectedAliases",
+          "command": "helmingway.compareSelectedReleases",
           "when": "false"
         }
       ],
@@ -60,12 +60,12 @@
       ],
       "view/item/context": [
         {
-          "command": "helmingway.openAliasPreview",
-          "when": "view == helmingway.preview && viewItem == alias"
+          "command": "helmingway.openReleasePreview",
+          "when": "view == helmingway.preview && viewItem == release"
         },
         {
-          "command": "helmingway.compareSelectedAliases",
-          "when": "view == helmingway.preview && viewItem == alias && listMultiSelection"
+          "command": "helmingway.compareSelectedReleases",
+          "when": "view == helmingway.preview && viewItem == release && listMultiSelection"
         }
       ]
     },

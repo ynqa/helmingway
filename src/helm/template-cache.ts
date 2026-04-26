@@ -10,13 +10,13 @@ export type HelmTemplateEntry = {
 };
 
 /**
- * Store rendered YAML and render state by chart/alias pair.
+ * Store rendered YAML and render state by chart/release pair.
  */
 export class HelmTemplateCache {
   private readonly entries = new Map<string, HelmTemplateEntry>();
 
-  begin(chartName: string, aliasName: string): number {
-    const key = this.toCacheKey(chartName, aliasName);
+  begin(chartName: string, releaseName: string): number {
+    const key = this.toCacheKey(chartName, releaseName);
     const nextVersion = (this.entries.get(key)?.version ?? 0) + 1;
 
     this.entries.set(key, {
@@ -28,8 +28,8 @@ export class HelmTemplateCache {
     return nextVersion;
   }
 
-  set(chartName: string, aliasName: string, version: number, content: string): void {
-    const key = this.toCacheKey(chartName, aliasName);
+  set(chartName: string, releaseName: string, version: number, content: string): void {
+    const key = this.toCacheKey(chartName, releaseName);
     const current = this.entries.get(key);
     if (!current || current.version !== version) {
       return;
@@ -42,8 +42,8 @@ export class HelmTemplateCache {
     });
   }
 
-  fail(chartName: string, aliasName: string, version: number, helmTemplateErrorMessage: string): void {
-    const key = this.toCacheKey(chartName, aliasName);
+  fail(chartName: string, releaseName: string, version: number, helmTemplateErrorMessage: string): void {
+    const key = this.toCacheKey(chartName, releaseName);
     const current = this.entries.get(key);
     if (!current || current.version !== version) {
       return;
@@ -57,14 +57,14 @@ export class HelmTemplateCache {
     });
   }
 
-  get(chartName: string, aliasName: string): HelmTemplateEntry | undefined {
-    return this.entries.get(this.toCacheKey(chartName, aliasName));
+  get(chartName: string, releaseName: string): HelmTemplateEntry | undefined {
+    return this.entries.get(this.toCacheKey(chartName, releaseName));
   }
 
   prune(config: HelmingwayConfig): void {
     const activeKeys = new Set(
       (config.helm?.charts ?? []).flatMap((chart) =>
-        (chart.aliases ?? []).map((alias) => this.toCacheKey(chart.name, alias.name)),
+        (chart.releases ?? []).map((release) => this.toCacheKey(chart.name, release.name)),
       ),
     );
 
@@ -84,7 +84,7 @@ export class HelmTemplateCache {
     }
   }
 
-  private toCacheKey(chartName: string, aliasName: string): string {
-    return `${chartName}:${aliasName}`;
+  private toCacheKey(chartName: string, releaseName: string): string {
+    return `${chartName}:${releaseName}`;
   }
 }

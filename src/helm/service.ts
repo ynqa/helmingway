@@ -7,7 +7,7 @@ import type { HelmTemplateEntry } from "./template-cache";
 
 type RebuildHelmTemplateCacheFailure = {
   chartName: string;
-  aliasName: string;
+  releaseName: string;
   message: string;
 };
 
@@ -34,9 +34,9 @@ export class HelmService {
     onCacheChanged();
 
     const renderTargets = (config.helm?.charts ?? []).flatMap((chart) =>
-      (chart.aliases ?? []).map((alias) => ({
+      (chart.releases ?? []).map((release) => ({
         chart,
-        alias,
+        release,
       })),
     );
 
@@ -55,21 +55,21 @@ export class HelmService {
 
         const failures: Array<RebuildHelmTemplateCacheFailure | undefined> = await Promise.all(
           renderTargets.map(async (target) => {
-            const version = this.cache.begin(target.chart.name, target.alias.name);
+            const version = this.cache.begin(target.chart.name, target.release.name);
             onCacheChanged();
 
             try {
-              const content = await runHelmTemplate({workspacePath, chart: target.chart, alias: target.alias});
-              this.cache.set(target.chart.name, target.alias.name, version, content);
+              const content = await runHelmTemplate({workspacePath, chart: target.chart, release: target.release});
+              this.cache.set(target.chart.name, target.release.name, version, content);
               onCacheChanged();
               return undefined;
             } catch (error) {
               const message = error instanceof Error ? error.message : String(error);
-              this.cache.fail(target.chart.name, target.alias.name, version, message);
+              this.cache.fail(target.chart.name, target.release.name, version, message);
               onCacheChanged();
               return {
                 chartName: target.chart.name,
-                aliasName: target.alias.name,
+                releaseName: target.release.name,
                 message,
               } satisfies RebuildHelmTemplateCacheFailure;
             } finally {
@@ -82,31 +82,31 @@ export class HelmService {
           }),
         );
 
-        const failedAliases = failures.filter(
+        const failedReleases = failures.filter(
           (failure): failure is RebuildHelmTemplateCacheFailure => failure !== undefined,
         );
 
-        if (failedAliases.length === 0) {
+        if (failedReleases.length === 0) {
           vscode.window.showInformationMessage(
-            `Helmingway: Ran helm template for ${renderTargets.length} aliases.`,
+            `Helmingway: Ran helm template for ${renderTargets.length} releases.`,
           );
           return;
         }
 
-        const failedSummary = failedAliases
+        const failedSummary = failedReleases
           .slice(0, 3)
-          .map((failure) => `${failure.chartName}/${failure.aliasName}: ${failure.message}`)
+          .map((failure) => `${failure.chartName}/${failure.releaseName}: ${failure.message}`)
           .join(" / ");
-        const omittedCount = failedAliases.length - 3;
+        const omittedCount = failedReleases.length - 3;
         const omittedMessage = omittedCount > 0 ? ` / ${omittedCount} more` : "";
         vscode.window.showErrorMessage(
-          `Helmingway: helm template failed for ${failedAliases.length} aliases: ${failedSummary}${omittedMessage}`,
+          `Helmingway: helm template failed for ${failedReleases.length} releases: ${failedSummary}${omittedMessage}`,
         );
       },
     );
   }
 
-  getHelmTemplateCacheEntry(chartName: string, aliasName: string): HelmTemplateEntry | undefined {
-    return this.cache.get(chartName, aliasName);
+  getHelmTemplateCacheEntry(chartName: string, releaseName: string): HelmTemplateEntry | undefined {
+    return this.cache.get(chartName, releaseName);
   }
 }
