@@ -43,26 +43,9 @@ export class HelmingwayTreeDataProvider implements vscode.TreeDataProvider<Helmi
     this.onDidChangeTreeDataEmitter.fire(undefined);
   }
 
-  updateResourceCheckboxes(event: vscode.TreeCheckboxChangeEvent<HelmingwayTreeNode>): void {
-    for (const [node, state] of event.items) {
-      if (node.type !== "resource") {
-        continue;
-      }
-
-      this.resourceExclusions.updateResourceCheckbox(node, state);
-    }
-
-    this.refresh();
-  }
-
-  getSelectedResources(node: ReleaseTreeNode): ResourceTreeNode[] {
-    return this.getResourceChildren(node).filter((resourceNode) => this.resourceExclusions.isSelected(resourceNode));
-  }
-
-  hasExcludedResources(node: ReleaseTreeNode): boolean {
-    return this.resourceExclusions.hasExcludedResources(node);
-  }
-
+  /**
+   * Load helmingway.yaml from the current workspace and update the cached config.
+   */
   async loadConfig(): Promise<HelmingwayConfig> {
     const workspaceFolder = getPrimaryWorkspaceFolder();
     if (!workspaceFolder) {
@@ -81,6 +64,26 @@ export class HelmingwayTreeDataProvider implements vscode.TreeDataProvider<Helmi
     }
 
     return this.currentConfig;
+  }
+
+  updateResourceCheckboxes(event: vscode.TreeCheckboxChangeEvent<HelmingwayTreeNode>): void {
+    for (const [node, state] of event.items) {
+      if (node.type !== "resource") {
+        continue;
+      }
+
+      this.resourceExclusions.updateResourceCheckbox(node, state);
+    }
+
+    this.refresh();
+  }
+
+  getSelectedResources(node: ReleaseTreeNode): ResourceTreeNode[] {
+    return this.getResourceChildren(node).filter((resourceNode) => this.resourceExclusions.isSelected(resourceNode));
+  }
+
+  hasExcludedResources(node: ReleaseTreeNode): boolean {
+    return this.resourceExclusions.hasExcludedResources(node);
   }
 
   getTreeItem(element: HelmingwayTreeNode): vscode.TreeItem {
