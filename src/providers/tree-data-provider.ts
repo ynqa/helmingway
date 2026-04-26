@@ -15,7 +15,20 @@ import {
   toAliasTreeNodes,
   toChartTreeNode,
 } from "../models";
-import { helmTemplateStatusPresentation, HelmService } from "../helm/service";
+import { HelmService, type HelmTemplateStatus } from "../helm/service";
+
+/**
+ * Theme icon for each render status, used in the tree view.
+ *
+ * ThemeIcon reference:
+ * - https://code.visualstudio.com/api/references/icons-in-labels
+ */
+const helmTemplateStatusIcon = {
+  idle: new vscode.ThemeIcon("circle-outline"),
+  rendering: new vscode.ThemeIcon("sync"),
+  rendered: new vscode.ThemeIcon("check"),
+  failed: new vscode.ThemeIcon("error"),
+} satisfies Record<HelmTemplateStatus, vscode.ThemeIcon>;
 
 /**
  * Provide Helmingway sidebar tree shown in VS Code Side View.
@@ -84,11 +97,10 @@ export class HelmingwayTreeDataProvider implements vscode.TreeDataProvider<Helmi
       const item = new vscode.TreeItem(element.aliasName, collapsibleState);
       const entry = this.renderStore.getHelmTemplateCacheEntry(element.chartName, element.aliasName);
       const status = entry?.status ?? "idle";
-      const presentation = helmTemplateStatusPresentation[status];
       const selectedCount = this.getSelectedResources(element).length;
       item.contextValue = "alias";
-      item.iconPath = presentation.icon;
-      item.description = selectedCount > 0 ? `${selectedCount} selected` : presentation.description;
+      item.iconPath = helmTemplateStatusIcon[status];
+      item.description = selectedCount > 0 ? `${selectedCount} selected` : status;
       if (entry?.helmTemplateErrorMessage) {
         item.tooltip = entry.helmTemplateErrorMessage;
       }

@@ -1,38 +1,6 @@
-import * as vscode from "vscode";
 import type { HelmingwayConfig } from "../models";
 
 export type HelmTemplateStatus = "idle" | "rendering" | "rendered" | "failed";
-
-/**
- * Presentation details for each render status, used in the tree view.
- *
- * ThemeIcon reference:
- * - https://code.visualstudio.com/api/references/icons-in-labels
- */
-export const helmTemplateStatusPresentation = {
-  idle: {
-    icon: new vscode.ThemeIcon("circle-outline"),
-    description: "idle",
-  },
-  rendering: {
-    icon: new vscode.ThemeIcon("sync"),
-    description: "rendering",
-  },
-  rendered: {
-    icon: new vscode.ThemeIcon("check"),
-    description: "rendered",
-  },
-  failed: {
-    icon: new vscode.ThemeIcon("error"),
-    description: "failed",
-  },
-} satisfies Record<
-  HelmTemplateStatus,
-  {
-    icon: vscode.ThemeIcon;
-    description: string;
-  }
->;
 
 export type HelmTemplateEntry = {
   version: number;

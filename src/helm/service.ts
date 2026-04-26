@@ -17,7 +17,6 @@ type RebuildHelmTemplateCacheOptions = {
   config: HelmingwayConfig;
 };
 
-export { helmTemplateStatusPresentation } from "./template-cache";
 export type { HelmTemplateEntry, HelmTemplateStatus } from "./template-cache";
 
 /**
