@@ -2,12 +2,8 @@
 import * as vscode from "vscode";
 import { HelmTemplateCache } from "./template-cache";
 import { runHelmTemplate } from "./template";
-import type { AliasConfig, ChartConfig, HelmingwayConfig } from "../models";
+import type { HelmingwayConfig } from "../models";
 import type { HelmTemplateEntry } from "./template-cache";
-
-type RefreshableProvider = {
-  refresh(): void;
-};
 
 type RebuildHelmTemplateCacheFailure = {
   chartName: string;
@@ -16,7 +12,7 @@ type RebuildHelmTemplateCacheFailure = {
 };
 
 type RebuildHelmTemplateCacheOptions = {
-  provider: RefreshableProvider;
+  onCacheChanged: () => void;
   workspacePath: string;
   config: HelmingwayConfig;
 };
@@ -31,12 +27,12 @@ export class HelmService {
   private readonly cache = new HelmTemplateCache();
 
   async rebuildHelmTemplateCache({
-    provider,
+    onCacheChanged,
     workspacePath,
     config,
   }: RebuildHelmTemplateCacheOptions): Promise<void> {
     this.cache.prune(config);
-    provider.refresh();
+    onCacheChanged();
 
     const renderTargets = (config.helm?.charts ?? []).flatMap((chart) =>
       (chart.aliases ?? []).map((alias) => ({
@@ -61,17 +57,17 @@ export class HelmService {
         const failures: Array<RebuildHelmTemplateCacheFailure | undefined> = await Promise.all(
           renderTargets.map(async (target) => {
             const version = this.cache.begin(target.chart.name, target.alias.name);
-            provider.refresh();
+            onCacheChanged();
 
             try {
               const content = await runHelmTemplate({workspacePath, chart: target.chart, alias: target.alias});
               this.cache.set(target.chart.name, target.alias.name, version, content);
-              provider.refresh();
+              onCacheChanged();
               return undefined;
             } catch (error) {
               const message = error instanceof Error ? error.message : String(error);
               this.cache.fail(target.chart.name, target.alias.name, version, message);
-              provider.refresh();
+              onCacheChanged();
               return {
                 chartName: target.chart.name,
                 aliasName: target.alias.name,
