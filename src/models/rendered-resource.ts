@@ -17,13 +17,11 @@ import { Range, parseAllDocuments } from "yaml";
  *     name: nginx
  *     namespace: default
  *   ```
- * - `previewFileName`: `Deployment-nginx.yaml`
  */
 export type PreviewResource = {
   resourceId: string;
   resourceLabel: string;
   manifestYaml: string;
-  previewFileName: string;
 };
 
 type KubernetesResourceDocument = {
@@ -60,7 +58,6 @@ export function parseRenderedResources(content: string): PreviewResource[] {
         resourceId,
         resourceLabel: `${kind} ${name}`,
         manifestYaml: toManifestYaml(content, document.range),
-        previewFileName: `${kind}-${name}.yaml`,
       } satisfies PreviewResource;
     })
     .filter((resource): resource is PreviewResource => resource !== undefined);
