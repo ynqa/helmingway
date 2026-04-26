@@ -49,8 +49,8 @@ export function activate(context: vscode.ExtensionContext) {
     treeView.onDidChangeSelection((event) => {
       selectedReleases = event.selection.filter(isReleaseNode);
     }),
-    // Keep resource checkbox selection and open release previews in sync.
-    // Checkbox changes update the per-release selected resource set first,
+    // Keep resource checkbox state and open release previews in sync.
+    // Checkbox changes update the per-release checked resource set first,
     // then refresh any affected release preview documents.
     treeView.onDidChangeCheckboxState((event) => {
       treeDataProvider.updateResourceCheckboxes(event);
@@ -189,8 +189,8 @@ function getFilteredReleasePreviewContent(
     return undefined;
   }
 
-  const selectedResources = treeDataProvider.getSelectedResources(node);
-  return joinPreviewResourceManifests(selectedResources.map((resourceNode) => resourceNode.resource));
+  const checkedResources = treeDataProvider.getCheckedResources(node);
+  return joinPreviewResourceManifests(checkedResources.map((resourceNode) => resourceNode.resource));
 }
 
 /**

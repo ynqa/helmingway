@@ -78,8 +78,8 @@ export class HelmingwayTreeDataProvider implements vscode.TreeDataProvider<Helmi
     this.refresh();
   }
 
-  getSelectedResources(node: ReleaseTreeNode): ResourceTreeNode[] {
-    return this.getResourceChildren(node).filter((resourceNode) => this.resourceExclusions.isSelected(resourceNode));
+  getCheckedResources(node: ReleaseTreeNode): ResourceTreeNode[] {
+    return this.getResourceChildren(node).filter((resourceNode) => this.resourceExclusions.isChecked(resourceNode));
   }
 
   getTreeItem(element: HelmingwayTreeNode): vscode.TreeItem {
@@ -95,10 +95,10 @@ export class HelmingwayTreeDataProvider implements vscode.TreeDataProvider<Helmi
       const item = new vscode.TreeItem(element.releaseName, collapsibleState);
       const entry = this.renderStore.getHelmTemplateCacheEntry(element.chartName, element.releaseName);
       const status = entry?.status ?? "idle";
-      const selectedCount = this.getSelectedResources(element).length;
+      const checkedCount = this.getCheckedResources(element).length;
       item.contextValue = "release";
       item.iconPath = helmTemplateStatusIcon[status];
-      item.description = selectedCount > 0 ? `${selectedCount} selected` : status;
+      item.description = checkedCount > 0 ? `${checkedCount} checked` : status;
       if (entry?.helmTemplateErrorMessage) {
         item.tooltip = entry.helmTemplateErrorMessage;
       }
@@ -113,7 +113,7 @@ export class HelmingwayTreeDataProvider implements vscode.TreeDataProvider<Helmi
       item.id = `${element.chartName}/${element.releaseName}/${element.resource.resourceId}`;
       item.contextValue = "resource";
       item.iconPath = new vscode.ThemeIcon("symbol-object");
-      item.checkboxState = this.isResourceSelected(element)
+      item.checkboxState = this.resourceExclusions.isChecked(element)
         ? vscode.TreeItemCheckboxState.Checked
         : vscode.TreeItemCheckboxState.Unchecked;
       return item;
@@ -153,17 +153,13 @@ export class HelmingwayTreeDataProvider implements vscode.TreeDataProvider<Helmi
       resource,
     }));
   }
-
-  private isResourceSelected(node: ResourceTreeNode): boolean {
-    return this.resourceExclusions.isSelected(node);
-  }
 }
 
 class ResourceExclusionStore {
   private readonly excludedResourceKeysByRelease = new Map<string, Set<string>>();
 
   updateResourceCheckbox(node: ResourceTreeNode, state: vscode.TreeItemCheckboxState): void {
-    const releaseKey = toReleaseSelectionKey(node);
+    const releaseKey = this.getReleaseKey(node);
     const excludedKeys = this.excludedResourceKeysByRelease.get(releaseKey) ?? new Set<string>();
 
     if (state === vscode.TreeItemCheckboxState.Checked) {
@@ -179,11 +175,11 @@ class ResourceExclusionStore {
     }
   }
 
-  isSelected(node: ResourceTreeNode): boolean {
-    return !this.excludedResourceKeysByRelease.get(toReleaseSelectionKey(node))?.has(node.resource.resourceId);
+  isChecked(node: ResourceTreeNode): boolean {
+    return !this.excludedResourceKeysByRelease.get(this.getReleaseKey(node))?.has(node.resource.resourceId);
   }
-}
 
-function toReleaseSelectionKey(node: Pick<ReleaseTreeNode, "chartName" | "releaseName">): string {
-  return `${node.chartName}/${node.releaseName}`;
+  private getReleaseKey(node: Pick<ReleaseTreeNode, "chartName" | "releaseName">): string {
+    return `${node.chartName}/${node.releaseName}`;
+  }
 }
