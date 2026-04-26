@@ -1,15 +1,10 @@
 /* eslint-disable sort-imports */
 import * as vscode from "vscode";
-import {
-  type HelmingwayTreeNode,
-  type ReleaseTreeNode,
-  isReleaseNode,
-  joinPreviewResourceManifests,
-} from "./models";
+import { type HelmingwayTreeNode, type ReleaseTreeNode, isReleaseNode } from "./models";
 import { HelmService } from "./helm/service";
 import { HelmingwayPreviewDocumentProvider } from "./providers/preview-document-provider";
 import { HelmingwayTreeDataProvider } from "./providers/tree-data-provider";
-import { getPrimaryWorkspaceFolder } from "./vscode-workspace";
+import { getPrimaryWorkspaceFolder, getReleaseManifestContent } from "./vscode-workspace";
 
 export function activate(context: vscode.ExtensionContext) {
   console.log("Helmingway extension is now active.");
@@ -37,10 +32,10 @@ export function activate(context: vscode.ExtensionContext) {
         return;
       }
 
-      return openReleasePreview(previewDocumentProvider, helmService, treeDataProvider, node);
+      return openReleasePreview(previewDocumentProvider, treeDataProvider, node);
     }),
     vscode.commands.registerCommand("helmingway.compareSelectedReleases", () =>
-      compareSelectedReleases(previewDocumentProvider, helmService, selectedReleases),
+      compareSelectedReleases(previewDocumentProvider, treeDataProvider, selectedReleases),
     ),
     vscode.commands.registerCommand("helmingway.rebuildHelmTemplateCache", () =>
       rebuildHelmTemplateCache(treeDataProvider, helmService),
@@ -57,12 +52,7 @@ export function activate(context: vscode.ExtensionContext) {
     // then refresh any affected release preview documents.
     treeView.onDidChangeCheckboxState((event) => {
       treeDataProvider.updateResourceCheckboxes(event);
-      openReleasePreviewsForCheckboxChanges(
-        previewDocumentProvider,
-        helmService,
-        treeDataProvider,
-        event,
-      );
+      openReleasePreviewsForCheckboxChanges(previewDocumentProvider, treeDataProvider, event);
     }),
     // Warm the preview cache once, when Helmingway view is first revealed.
     treeView.onDidChangeVisibility(async (event) => {
@@ -83,7 +73,7 @@ export function deactivate() {}
  */
 async function compareSelectedReleases(
   previewDocumentProvider: HelmingwayPreviewDocumentProvider,
-  helmService: HelmService,
+  treeDataProvider: HelmingwayTreeDataProvider,
   selectedReleases: ReleaseTreeNode[],
 ): Promise<void> {
   if (selectedReleases.length !== 2) {
@@ -92,12 +82,12 @@ async function compareSelectedReleases(
   }
 
   const [leftRelease, rightRelease] = selectedReleases;
-  const leftContent = getRenderedReleaseContent(helmService, leftRelease);
+  const leftContent = getReleaseManifestContent(treeDataProvider, leftRelease);
   if (!leftContent) {
     return;
   }
 
-  const rightContent = getRenderedReleaseContent(helmService, rightRelease);
+  const rightContent = getReleaseManifestContent(treeDataProvider, rightRelease);
   if (!rightContent) {
     return;
   }
@@ -153,11 +143,10 @@ async function closeAllPreviews(): Promise<void> {
  */
 async function openReleasePreview(
   previewDocumentProvider: HelmingwayPreviewDocumentProvider,
-  helmService: HelmService,
   treeDataProvider: HelmingwayTreeDataProvider,
   node: ReleaseTreeNode,
 ): Promise<void> {
-  const previewContent = getFilteredReleasePreviewContent(helmService, treeDataProvider, node);
+  const previewContent = getReleaseManifestContent(treeDataProvider, node);
   if (previewContent === undefined) {
     return;
   }
@@ -170,7 +159,6 @@ async function openReleasePreview(
  */
 function openReleasePreviewsForCheckboxChanges(
   previewDocumentProvider: HelmingwayPreviewDocumentProvider,
-  helmService: HelmService,
   treeDataProvider: HelmingwayTreeDataProvider,
   event: vscode.TreeCheckboxChangeEvent<HelmingwayTreeNode>,
 ): void {
@@ -191,59 +179,6 @@ function openReleasePreviewsForCheckboxChanges(
   }
 
   for (const releaseNode of releasesToRefresh.values()) {
-    void openReleasePreview(previewDocumentProvider, helmService, treeDataProvider, releaseNode);
+    void openReleasePreview(previewDocumentProvider, treeDataProvider, releaseNode);
   }
-}
-
-function getFilteredReleasePreviewContent(
-  helmService: HelmService,
-  treeDataProvider: HelmingwayTreeDataProvider,
-  node: ReleaseTreeNode,
-): string | undefined {
-  const content = getRenderedReleaseContent(helmService, node);
-  if (content === undefined) {
-    return undefined;
-  }
-
-  const checkedResources = treeDataProvider.getCheckedResources(node);
-  return joinPreviewResourceManifests(
-    checkedResources.map((resourceNode) => resourceNode.resource),
-  );
-}
-
-/**
- * Get the rendered content for the given release node from the preview cache.
- * If the content is not available, show an information or error message and return undefined.
- */
-function getRenderedReleaseContent(
-  helmService: HelmService,
-  node: ReleaseTreeNode,
-): string | undefined {
-  const entry = helmService.getHelmTemplateCacheEntry(node.chartName, node.releaseName);
-  if (!entry || entry.status === "idle") {
-    vscode.window.showInformationMessage(
-      `Helmingway: ${node.chartName}/${node.releaseName} is not rendered yet. Run Refresh first.`,
-    );
-    return undefined;
-  }
-  if (entry.status === "rendering") {
-    vscode.window.showInformationMessage(
-      `Helmingway: ${node.chartName}/${node.releaseName} is still rendering.`,
-    );
-    return undefined;
-  }
-  if (entry.status === "failed") {
-    vscode.window.showErrorMessage(
-      `Helmingway: Failed to render ${node.chartName}/${node.releaseName}: ${entry.helmTemplateErrorMessage ?? "unknown error"}`,
-    );
-    return undefined;
-  }
-  if (entry.content === undefined) {
-    vscode.window.showErrorMessage(
-      `Helmingway: Preview cache content was not found for ${node.chartName}/${node.releaseName}.`,
-    );
-    return undefined;
-  }
-
-  return entry.content;
 }

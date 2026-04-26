@@ -86,15 +86,6 @@ export class HelmingwayTreeDataProvider implements vscode.TreeDataProvider<Helmi
   }
 
   /**
-   * Get resources whose tree checkboxes are currently checked for a release.
-   */
-  getCheckedResources(node: ReleaseTreeNode): ResourceTreeNode[] {
-    return this.getResourceChildren(node).filter((resourceNode) =>
-      this.resourceExclusions.isChecked(resourceNode),
-    );
-  }
-
-  /**
    * Get render status and parsed manifest resources for a release.
    */
   getReleaseManifestView(node: ReleaseTreeNode): ReleaseManifestView {
@@ -167,7 +158,9 @@ export class HelmingwayTreeDataProvider implements vscode.TreeDataProvider<Helmi
       element.releaseName,
     );
     const status = entry?.status ?? "idle";
-    const checkedCount = this.getCheckedResources(element).length;
+    const checkedCount = this.getReleaseManifestView(element).resources.filter((resourceNode) =>
+      this.resourceExclusions.isChecked(resourceNode),
+    ).length;
     item.contextValue = "release";
     item.iconPath = helmTemplateStatusIcon[status];
     item.description = checkedCount > 0 ? `${checkedCount} checked` : status;
