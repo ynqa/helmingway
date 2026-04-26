@@ -163,6 +163,9 @@ export class HelmingwayTreeDataProvider implements vscode.TreeDataProvider<Helmi
     return [];
   }
 
+  /**
+   * Build resource child nodes from the rendered manifest cached for a release.
+   */
   private getResourceChildren(node: ReleaseTreeNode): ResourceTreeNode[] {
     const entry = this.renderStore.getHelmTemplateCacheEntry(node.chartName, node.releaseName);
     if (entry?.status !== "rendered" || entry.content === undefined) {
