@@ -59,7 +59,11 @@ export class HelmService {
             onCacheChanged();
 
             try {
-              const content = await runHelmTemplate({workspacePath, chart: target.chart, release: target.release});
+              const content = await runHelmTemplate({
+                workspacePath,
+                chart: target.chart,
+                release: target.release,
+              });
               this.cache.set(target.chart.name, target.release.name, version, content);
               onCacheChanged();
               return undefined;

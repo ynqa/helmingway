@@ -31,7 +31,9 @@ const helmTemplateStatusIcon = {
  * Provide Helmingway sidebar tree shown in VS Code Side View.
  */
 export class HelmingwayTreeDataProvider implements vscode.TreeDataProvider<HelmingwayTreeNode> {
-  private readonly onDidChangeTreeDataEmitter = new vscode.EventEmitter<HelmingwayTreeNode | undefined>();
+  private readonly onDidChangeTreeDataEmitter = new vscode.EventEmitter<
+    HelmingwayTreeNode | undefined
+  >();
   private readonly resourceExclusions = new ResourceExclusionStore();
   private currentConfig: HelmingwayConfig = {};
 
@@ -79,21 +81,31 @@ export class HelmingwayTreeDataProvider implements vscode.TreeDataProvider<Helmi
   }
 
   getCheckedResources(node: ReleaseTreeNode): ResourceTreeNode[] {
-    return this.getResourceChildren(node).filter((resourceNode) => this.resourceExclusions.isChecked(resourceNode));
+    return this.getResourceChildren(node).filter((resourceNode) =>
+      this.resourceExclusions.isChecked(resourceNode),
+    );
   }
 
   getTreeItem(element: HelmingwayTreeNode): vscode.TreeItem {
     if (element.type === "chart") {
-      const item = new vscode.TreeItem(element.chartName, vscode.TreeItemCollapsibleState.Collapsed);
+      const item = new vscode.TreeItem(
+        element.chartName,
+        vscode.TreeItemCollapsibleState.Collapsed,
+      );
       item.description = element.chartPath;
       item.iconPath = new vscode.ThemeIcon("package");
       return item;
     } else if (element.type === "release") {
       const resources = this.getResourceChildren(element);
       const collapsibleState =
-        resources.length > 0 ? vscode.TreeItemCollapsibleState.Collapsed : vscode.TreeItemCollapsibleState.None;
+        resources.length > 0
+          ? vscode.TreeItemCollapsibleState.Collapsed
+          : vscode.TreeItemCollapsibleState.None;
       const item = new vscode.TreeItem(element.releaseName, collapsibleState);
-      const entry = this.renderStore.getHelmTemplateCacheEntry(element.chartName, element.releaseName);
+      const entry = this.renderStore.getHelmTemplateCacheEntry(
+        element.chartName,
+        element.releaseName,
+      );
       const status = entry?.status ?? "idle";
       const checkedCount = this.getCheckedResources(element).length;
       item.contextValue = "release";
@@ -109,7 +121,10 @@ export class HelmingwayTreeDataProvider implements vscode.TreeDataProvider<Helmi
       };
       return item;
     } else if (element.type === "resource") {
-      const item = new vscode.TreeItem(element.resource.resourceLabel, vscode.TreeItemCollapsibleState.None);
+      const item = new vscode.TreeItem(
+        element.resource.resourceLabel,
+        vscode.TreeItemCollapsibleState.None,
+      );
       item.id = `${element.chartName}/${element.releaseName}/${element.resource.resourceId}`;
       item.contextValue = "resource";
       item.iconPath = new vscode.ThemeIcon("symbol-object");
@@ -129,7 +144,9 @@ export class HelmingwayTreeDataProvider implements vscode.TreeDataProvider<Helmi
     }
 
     if (element.type === "chart") {
-      const chart = (this.currentConfig.helm?.charts ?? []).find((chart) => chart.name === element.chartName);
+      const chart = (this.currentConfig.helm?.charts ?? []).find(
+        (chart) => chart.name === element.chartName,
+      );
       return chart ? toReleaseTreeNodes(chart) : [];
     }
 
@@ -176,7 +193,9 @@ class ResourceExclusionStore {
   }
 
   isChecked(node: ResourceTreeNode): boolean {
-    return !this.excludedResourceKeysByRelease.get(this.getReleaseKey(node))?.has(node.resource.resourceId);
+    return !this.excludedResourceKeysByRelease
+      .get(this.getReleaseKey(node))
+      ?.has(node.resource.resourceId);
   }
 
   private getReleaseKey(node: Pick<ReleaseTreeNode, "chartName" | "releaseName">): string {

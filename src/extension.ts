@@ -28,7 +28,10 @@ export function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
     treeView,
-    vscode.workspace.registerTextDocumentContentProvider("helmingway-preview", previewDocumentProvider),
+    vscode.workspace.registerTextDocumentContentProvider(
+      "helmingway-preview",
+      previewDocumentProvider,
+    ),
     vscode.commands.registerCommand("helmingway.openReleasePreview", (node) => {
       if (!isReleaseNode(node)) {
         return;
@@ -54,7 +57,12 @@ export function activate(context: vscode.ExtensionContext) {
     // then refresh any affected release preview documents.
     treeView.onDidChangeCheckboxState((event) => {
       treeDataProvider.updateResourceCheckboxes(event);
-      refreshReleasePreviewsForCheckboxChanges(previewDocumentProvider, helmService, treeDataProvider, event);
+      refreshReleasePreviewsForCheckboxChanges(
+        previewDocumentProvider,
+        helmService,
+        treeDataProvider,
+        event,
+      );
     }),
     // Warm the preview cache once, when the Helmingway view is first revealed.
     treeView.onDidChangeVisibility(async (event) => {
@@ -111,7 +119,12 @@ async function compareSelectedReleases(
     return;
   }
 
-  await previewDocumentProvider.showReleaseComparison(leftRelease, leftContent, rightRelease, rightContent);
+  await previewDocumentProvider.showReleaseComparison(
+    leftRelease,
+    leftContent,
+    rightRelease,
+    rightContent,
+  );
 }
 
 /**
@@ -190,7 +203,9 @@ function getFilteredReleasePreviewContent(
   }
 
   const checkedResources = treeDataProvider.getCheckedResources(node);
-  return joinPreviewResourceManifests(checkedResources.map((resourceNode) => resourceNode.resource));
+  return joinPreviewResourceManifests(
+    checkedResources.map((resourceNode) => resourceNode.resource),
+  );
 }
 
 /**

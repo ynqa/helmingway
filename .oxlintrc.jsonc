@@ -9,9 +9,9 @@
     "perf": "off",
     "restriction": "off",
     "style": "off",
-    "suspicious": "off"
+    "suspicious": "off",
   },
   "rules": {
-    "sort-imports": "error"
-  }
+    "sort-imports": "error",
+  },
 }

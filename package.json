@@ -1,15 +1,28 @@
 {
   "name": "helmingway",
   "displayName": "Helmingway",
-  "description": "PoC Helm preview and diff from the editor title bar.",
   "version": "0.1.0",
-  "engines": {
-    "vscode": "^1.115.0"
-  },
+  "description": "PoC Helm preview and diff from the editor title bar.",
   "categories": [
     "Other"
   ],
   "main": "./out/extension.js",
+  "scripts": {
+    "compile": "tsc -p ./",
+    "format": "oxfmt . --write",
+    "format:check": "oxfmt . --check",
+    "lint": "oxlint src"
+  },
+  "dependencies": {
+    "yaml": "^2.8.1"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "@types/vscode": "^1.116.0",
+    "oxfmt": "^0.46.0",
+    "oxlint": "^1.61.0",
+    "typescript": "^6.0.3"
+  },
   "contributes": {
     "commands": [
       {
@@ -87,18 +100,8 @@
       ]
     }
   },
-  "scripts": {
-    "compile": "tsc -p ./",
-    "lint": "oxlint src"
-  },
-  "dependencies": {
-    "yaml": "^2.8.1"
-  },
-  "devDependencies": {
-    "@types/node": "^25.6.0",
-    "@types/vscode": "^1.116.0",
-    "oxlint": "^1.61.0",
-    "typescript": "^6.0.3"
+  "engines": {
+    "vscode": "^1.115.0"
   },
   "packageManager": "pnpm@10.27.0"
 }

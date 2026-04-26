@@ -42,7 +42,12 @@ export class HelmTemplateCache {
     });
   }
 
-  fail(chartName: string, releaseName: string, version: number, helmTemplateErrorMessage: string): void {
+  fail(
+    chartName: string,
+    releaseName: string,
+    version: number,
+    helmTemplateErrorMessage: string,
+  ): void {
     const key = this.toCacheKey(chartName, releaseName);
     const current = this.entries.get(key);
     if (!current || current.version !== version) {

@@ -91,5 +91,8 @@ function toManifestYaml(content: string, range: Range | undefined): string {
     return "";
   }
 
-  return content.slice(range[0], range[1]).replace(/^(?:---\r?\n)+/, "").trimEnd();
+  return content
+    .slice(range[0], range[1])
+    .replace(/^(?:---\r?\n)+/, "")
+    .trimEnd();
 }
