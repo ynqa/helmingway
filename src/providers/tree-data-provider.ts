@@ -8,6 +8,7 @@ import {
   type HelmingwayTreeNode,
   loadHelmingwayConfig,
   parsePreviewResources,
+  type ReleaseManifestView,
   type ReleaseTreeNode,
   type ResourceTreeNode,
   toChartTreeNode,
@@ -91,6 +92,22 @@ export class HelmingwayTreeDataProvider implements vscode.TreeDataProvider<Helmi
     return this.getResourceChildren(node).filter((resourceNode) =>
       this.resourceExclusions.isChecked(resourceNode),
     );
+  }
+
+  /**
+   * Get render status and parsed manifest resources for a release.
+   */
+  getReleaseManifestView(node: ReleaseTreeNode): ReleaseManifestView {
+    const entry = this.renderStore.getHelmTemplateCacheEntry(node.chartName, node.releaseName);
+    return {
+      release: node,
+      status: entry?.status ?? "idle",
+      errorMessage: entry?.helmTemplateErrorMessage,
+      resources:
+        entry?.status === "rendered" && entry.content !== undefined
+          ? this.getResourceChildren(node)
+          : [],
+    };
   }
 
   /**
