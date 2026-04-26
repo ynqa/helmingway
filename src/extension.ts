@@ -190,10 +190,6 @@ function getFilteredReleasePreviewContent(
   }
 
   const selectedResources = treeDataProvider.getSelectedResources(node);
-  if (!treeDataProvider.hasExcludedResources(node)) {
-    return content;
-  }
-
   return joinPreviewResourceManifests(selectedResources.map((resourceNode) => resourceNode.resource));
 }
 

@@ -82,10 +82,6 @@ export class HelmingwayTreeDataProvider implements vscode.TreeDataProvider<Helmi
     return this.getResourceChildren(node).filter((resourceNode) => this.resourceExclusions.isSelected(resourceNode));
   }
 
-  hasExcludedResources(node: ReleaseTreeNode): boolean {
-    return this.resourceExclusions.hasExcludedResources(node);
-  }
-
   getTreeItem(element: HelmingwayTreeNode): vscode.TreeItem {
     if (element.type === "chart") {
       const item = new vscode.TreeItem(element.chartName, vscode.TreeItemCollapsibleState.Collapsed);
@@ -185,10 +181,6 @@ class ResourceExclusionStore {
 
   isSelected(node: ResourceTreeNode): boolean {
     return !this.excludedResourceKeysByRelease.get(toReleaseSelectionKey(node))?.has(node.resource.resourceId);
-  }
-
-  hasExcludedResources(node: Pick<ReleaseTreeNode, "chartName" | "releaseName">): boolean {
-    return this.excludedResourceKeysByRelease.has(toReleaseSelectionKey(node));
   }
 }
 
