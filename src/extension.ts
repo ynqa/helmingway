@@ -42,12 +42,12 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.commands.registerCommand("helmingway.compareSelectedReleases", () =>
       compareSelectedReleases(previewDocumentProvider, helmService, selectedReleases),
     ),
-    vscode.commands.registerCommand("helmingway.refreshPreview", () =>
-      refreshPreview(treeDataProvider, helmService),
+    vscode.commands.registerCommand("helmingway.rebuildHelmTemplateCache", () =>
+      rebuildHelmTemplateCache(treeDataProvider, helmService),
     ),
     vscode.commands.registerCommand("helmingway.closeAllPreviews", closeAllPreviews),
 
-    // Keep the current release-only tree selection so the Compare command can use it.
+    // Keep the current release-only tree selection so Compare command can use it.
     // VS Code does not pass the full multi-selection to the command handler reliably.
     treeView.onDidChangeSelection((event) => {
       selectedReleases = event.selection.filter(isReleaseNode);
@@ -64,14 +64,14 @@ export function activate(context: vscode.ExtensionContext) {
         event,
       );
     }),
-    // Warm the preview cache once, when the Helmingway view is first revealed.
+    // Warm the preview cache once, when Helmingway view is first revealed.
     treeView.onDidChangeVisibility(async (event) => {
       if (!event.visible || hasInitializedPreview) {
         return;
       }
 
       hasInitializedPreview = true;
-      await refreshPreview(treeDataProvider, helmService);
+      await rebuildHelmTemplateCache(treeDataProvider, helmService);
     }),
   );
 }
@@ -128,9 +128,9 @@ async function compareSelectedReleases(
 }
 
 /**
- * Refresh the preview cache and update the tree view.
+ * Rebuild the rendered Helm template cache and update the tree view.
  */
-async function refreshPreview(
+async function rebuildHelmTemplateCache(
   treeDataProvider: HelmingwayTreeDataProvider,
   helmService: HelmService,
 ): Promise<void> {

@@ -34,8 +34,8 @@
         "title": "Compare"
       },
       {
-        "command": "helmingway.refreshPreview",
-        "title": "Refresh Preview",
+        "command": "helmingway.rebuildHelmTemplateCache",
+        "title": "Rebuild Helm Template Cache",
         "icon": "$(refresh)"
       },
       {
@@ -51,7 +51,7 @@
           "when": "false"
         },
         {
-          "command": "helmingway.refreshPreview",
+          "command": "helmingway.rebuildHelmTemplateCache",
           "when": "false"
         },
         {
@@ -61,7 +61,7 @@
       ],
       "view/title": [
         {
-          "command": "helmingway.refreshPreview",
+          "command": "helmingway.rebuildHelmTemplateCache",
           "when": "view == helmingway.preview",
           "group": "navigation"
         },
