@@ -148,7 +148,6 @@ async function closeAllPreviews(): Promise<void> {
   await vscode.window.tabGroups.close(previewTabs);
 }
 
-
 /**
  * Open a preview document for the given release node.
  */
