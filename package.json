@@ -87,7 +87,7 @@
         {
           "id": "helmingway",
           "title": "Helmingway",
-          "icon": "resources/helmingway.svg"
+          "icon": "assets/helmingway.icon.svg"
         }
       ]
     },
