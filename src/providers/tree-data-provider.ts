@@ -1,15 +1,12 @@
 /* eslint-disable sort-imports */
-import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import * as vscode from "vscode";
-import { parse } from "yaml";
 import { getPrimaryWorkspaceFolder } from "../vscode-workspace";
 import {
   type HelmingwayConfig,
   type HelmingwayTreeNode,
+  loadHelmingwayConfig,
   parsePreviewResources,
-  parseChartSource,
-  type RawHelmingwayConfig,
   type ReleaseTreeNode,
   type ResourceTreeNode,
   toChartTreeNode,
@@ -66,8 +63,23 @@ export class HelmingwayTreeDataProvider implements vscode.TreeDataProvider<Helmi
     return this.resourceExclusions.hasExcludedResources(node);
   }
 
-  async refreshConfig(): Promise<HelmingwayConfig> {
-    this.currentConfig = await readHelmingwayConfig();
+  async loadConfig(): Promise<HelmingwayConfig> {
+    const workspaceFolder = getPrimaryWorkspaceFolder();
+    if (!workspaceFolder) {
+      this.currentConfig = {};
+      return this.currentConfig;
+    }
+
+    const configPath = path.join(workspaceFolder.uri.fsPath, "helmingway.yaml");
+
+    try {
+      this.currentConfig = await loadHelmingwayConfig(configPath);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      vscode.window.showErrorMessage(`Helmingway: Failed to read config file: ${message}`);
+      this.currentConfig = {};
+    }
+
     return this.currentConfig;
   }
 
@@ -113,7 +125,7 @@ export class HelmingwayTreeDataProvider implements vscode.TreeDataProvider<Helmi
 
   async getChildren(element?: HelmingwayTreeNode): Promise<HelmingwayTreeNode[]> {
     if (!element) {
-      const currentConfig = await this.refreshConfig();
+      const currentConfig = await this.loadConfig();
       return (currentConfig.helm?.charts ?? []).map(toChartTreeNode);
     }
 
@@ -179,37 +191,4 @@ class ResourceExclusionStore {
 
 function toReleaseSelectionKey(node: Pick<ReleaseTreeNode, "chartName" | "releaseName">): string {
   return `${node.chartName}/${node.releaseName}`;
-}
-
-/**
- * Read and parse helmingway.yaml from workspace folder.
- * If the file is missing or invalid, show an error message and return an empty config.
- */
-async function readHelmingwayConfig(): Promise<HelmingwayConfig> {
-  const workspaceFolder = getPrimaryWorkspaceFolder();
-  if (!workspaceFolder) {
-    return {};
-  }
-
-  const configPath = path.join(workspaceFolder.uri.fsPath, "helmingway.yaml");
-
-  try {
-    const content = await fs.readFile(configPath, "utf8");
-    const raw = parse(content) as RawHelmingwayConfig;
-
-    return {
-      helm: {
-        charts: (raw.helm?.charts ?? []).map((chart) => ({
-          name: chart.name,
-          source: parseChartSource(chart.source),
-          namespace: chart.namespace,
-          releases: chart.releases,
-        })),
-      },
-    };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    vscode.window.showErrorMessage(`Helmingway: Failed to read config file: ${message}`);
-    return {};
-  }
 }

@@ -1,4 +1,6 @@
-import type { HelmChartSource } from "./chart-source";
+import * as fs from "node:fs/promises";
+import { type HelmChartSource, parseChartSource } from "./chart-source";
+import { parse } from "yaml";
 
 export type HelmingwayConfig = {
   helm?: {
@@ -29,6 +31,25 @@ export type ReleaseConfig = {
   valueFiles?: string[];
   values?: Record<string, unknown>;
 };
+
+/**
+ * Load and normalize a Helmingway config file from disk.
+ */
+export async function loadHelmingwayConfig(configPath: string): Promise<HelmingwayConfig> {
+  const content = await fs.readFile(configPath, "utf8");
+  const raw = parse(content) as RawHelmingwayConfig;
+
+  return {
+    helm: {
+      charts: (raw.helm?.charts ?? []).map((chart) => ({
+        name: chart.name,
+        source: parseChartSource(chart.source),
+        namespace: chart.namespace,
+        releases: chart.releases,
+      })),
+    },
+  };
+}
 
 /**
  * Find a chart config by chart name.

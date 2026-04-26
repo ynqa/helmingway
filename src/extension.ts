@@ -126,7 +126,7 @@ async function refreshPreview(
     return;
   }
 
-  const currentConfig = await treeDataProvider.refreshConfig();
+  const currentConfig = await treeDataProvider.loadConfig();
   await helmService.rebuildHelmTemplateCache({
     onCacheChanged: () => treeDataProvider.refresh(),
     workspacePath: workspaceFolder.uri.fsPath,
