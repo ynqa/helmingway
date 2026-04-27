@@ -4,7 +4,7 @@ import { type HelmingwayTreeNode, type ReleaseTreeNode, isReleaseNode } from "./
 import { HelmService } from "./helm/service";
 import { HelmingwayPreviewDocumentProvider } from "./providers/preview-document-provider";
 import { HelmingwayTreeDataProvider } from "./providers/tree-data-provider";
-import { getPrimaryWorkspaceFolder, getReleaseManifestContent } from "./vscode-workspace";
+import { getPrimaryWorkspaceFolder, getReleaseManifestContent } from "./vscode-helpers";
 
 export function activate(context: vscode.ExtensionContext) {
   console.log("Helmingway extension is now active.");

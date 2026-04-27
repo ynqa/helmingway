@@ -1,7 +1,7 @@
 /* eslint-disable sort-imports */
 import * as path from "node:path";
 import * as vscode from "vscode";
-import { getPrimaryWorkspaceFolder } from "../vscode-workspace";
+import { getPrimaryWorkspaceFolder } from "../vscode-helpers";
 import {
   type ChartTreeNode,
   type HelmingwayConfig,
