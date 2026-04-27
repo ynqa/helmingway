@@ -16,7 +16,7 @@ export const chartConfigSchema = z.object({
   name: z.string(),
   source: z.pipe(z.string(), z.transform(parseChartSource)),
   namespace: z.optional(z.string()),
-  releases: z.optional(z.array(releaseConfigSchema)),
+  releases: z.array(releaseConfigSchema),
 });
 
 export type ChartConfig = z.infer<typeof chartConfigSchema>;
@@ -36,7 +36,15 @@ export type HelmingwayConfig = z.infer<typeof helmingwayConfigSchema>;
  */
 export async function loadHelmingwayConfig(configPath: string): Promise<HelmingwayConfig> {
   const content = await fs.readFile(configPath, "utf8");
-  return helmingwayConfigSchema.parse(parse(content));
+  const result = z.safeParse(helmingwayConfigSchema, parse(content));
+  if (!result.success) {
+    const issue = result.error.issues[0];
+    const path = issue?.path?.join(".");
+    const message = issue?.message ?? "Invalid config file.";
+    throw new Error(path ? `${path}: ${message}` : message);
+  }
+
+  return result.data;
 }
 
 /**
