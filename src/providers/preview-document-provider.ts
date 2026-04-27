@@ -47,23 +47,55 @@ export class HelmingwayPreviewDocumentProvider implements vscode.TextDocumentCon
     rightNode: ReleaseTreeNode,
     rightContent: string,
   ): Promise<void> {
+    await this.showTextComparison({
+      leftPath: `/compare/${leftNode.chartName}-${leftNode.releaseName}.yaml`,
+      leftContent,
+      rightPath: `/compare/${rightNode.chartName}-${rightNode.releaseName}.yaml`,
+      rightContent,
+      title: `${leftNode.releaseName} ↔ ${rightNode.releaseName}`,
+      language: "yaml",
+    });
+  }
+
+  /**
+   * Open a side-by-side diff view comparing two arbitrary virtual documents.
+   */
+  async showTextComparison(options: {
+    leftPath: string;
+    leftContent: string;
+    rightPath: string;
+    rightContent: string;
+    title: string;
+    language?: string;
+  }): Promise<void> {
     const leftUri = vscode.Uri.from({
       scheme: "helmingway-preview",
-      path: `/compare/${leftNode.chartName}-${leftNode.releaseName}.yaml`,
+      path: options.leftPath,
     });
     const rightUri = vscode.Uri.from({
       scheme: "helmingway-preview",
-      path: `/compare/${rightNode.chartName}-${rightNode.releaseName}.yaml`,
+      path: options.rightPath,
     });
 
-    this.setContent(leftUri, leftContent);
-    this.setContent(rightUri, rightContent);
+    this.setContent(leftUri, options.leftContent);
+    this.setContent(rightUri, options.rightContent);
+
+    if (options.language) {
+      const [leftDocument, rightDocument] = await Promise.all([
+        vscode.workspace.openTextDocument(leftUri),
+        vscode.workspace.openTextDocument(rightUri),
+      ]);
+      await Promise.all([
+        vscode.languages.setTextDocumentLanguage(leftDocument, options.language),
+        vscode.languages.setTextDocumentLanguage(rightDocument, options.language),
+      ]);
+    }
 
     await vscode.commands.executeCommand(
       "vscode.diff",
       leftUri,
       rightUri,
-      `${leftNode.releaseName} ↔ ${rightNode.releaseName}`,
+      options.title,
     );
   }
 }

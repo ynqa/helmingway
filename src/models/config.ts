@@ -32,10 +32,9 @@ export const helmingwayConfigSchema = z.object({
 export type HelmingwayConfig = z.infer<typeof helmingwayConfigSchema>;
 
 /**
- * Load and normalize a Helmingway config file from disk.
+ * Parse and normalize Helmingway config content.
  */
-export async function loadHelmingwayConfig(configPath: string): Promise<HelmingwayConfig> {
-  const content = await fs.readFile(configPath, "utf8");
+export function parseHelmingwayConfig(content: string): HelmingwayConfig {
   const result = z.safeParse(helmingwayConfigSchema, parse(content));
   if (!result.success) {
     const issue = result.error.issues[0];
@@ -45,6 +44,14 @@ export async function loadHelmingwayConfig(configPath: string): Promise<Helmingw
   }
 
   return result.data;
+}
+
+/**
+ * Load and normalize a Helmingway config file from disk.
+ */
+export async function loadHelmingwayConfig(configPath: string): Promise<HelmingwayConfig> {
+  const content = await fs.readFile(configPath, "utf8");
+  return parseHelmingwayConfig(content);
 }
 
 /**

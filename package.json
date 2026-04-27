@@ -35,9 +35,18 @@
         "title": "Compare"
       },
       {
+        "command": "helmingway.compareSelectedReleaseWithGitCommit",
+        "title": "Compare With Selected Release"
+      },
+      {
         "command": "helmingway.toggleReleaseResources",
         "title": "Toggle All Resources",
         "icon": "$(checklist)"
+      },
+      {
+        "command": "helmingway.refreshGitHistory",
+        "title": "Refresh Git History",
+        "icon": "$(refresh)"
       },
       {
         "command": "helmingway.rebuildHelmTemplateCache",
@@ -65,6 +74,10 @@
           "when": "false"
         },
         {
+          "command": "helmingway.compareSelectedReleaseWithGitCommit",
+          "when": "false"
+        },
+        {
           "command": "helmingway.toggleReleaseResources",
           "when": "false"
         }
@@ -79,6 +92,11 @@
           "command": "helmingway.closeAllPreviews",
           "when": "view == helmingway.preview",
           "group": "navigation@1"
+        },
+        {
+          "command": "helmingway.refreshGitHistory",
+          "when": "view == helmingway.history",
+          "group": "navigation"
         }
       ],
       "view/item/context": [
@@ -94,6 +112,10 @@
           "command": "helmingway.toggleReleaseResources",
           "when": "view == helmingway.preview && viewItem == release",
           "group": "inline"
+        },
+        {
+          "command": "helmingway.compareSelectedReleaseWithGitCommit",
+          "when": "view == helmingway.history && viewItem == gitCommit"
         }
       ]
     },
@@ -111,6 +133,10 @@
         {
           "id": "helmingway.preview",
           "name": "Preview"
+        },
+        {
+          "id": "helmingway.history",
+          "name": "History"
         }
       ]
     }
