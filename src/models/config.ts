@@ -1,54 +1,42 @@
 import * as fs from "node:fs/promises";
-import { type HelmChartSource, parseChartSource } from "./chart-source";
+import * as z from "@zod/mini";
 import { parse } from "yaml";
+import { parseChartSource } from "./chart-source";
 
-export type HelmingwayConfig = {
-  helm?: {
-    charts?: ChartConfig[];
-  };
-};
+const releaseConfigSchema = z.object({
+  name: z.string(),
+  namespace: z.optional(z.string()),
+  valueFiles: z.optional(z.array(z.string())),
+  values: z.optional(z.record(z.string(), z.unknown())),
+});
 
-export type RawHelmingwayConfig = Omit<HelmingwayConfig, "helm"> & {
-  helm?: {
-    charts?: RawChartConfig[];
-  };
-};
+export type ReleaseConfig = z.infer<typeof releaseConfigSchema>;
 
-export type ChartConfig = {
-  name: string;
-  source: HelmChartSource;
-  namespace?: string;
-  releases?: ReleaseConfig[];
-};
+export const chartConfigSchema = z.object({
+  name: z.string(),
+  source: z.pipe(z.string(), z.transform(parseChartSource)),
+  namespace: z.optional(z.string()),
+  releases: z.optional(z.array(releaseConfigSchema)),
+});
 
-export type RawChartConfig = Omit<ChartConfig, "source"> & {
-  source: string;
-};
+export type ChartConfig = z.infer<typeof chartConfigSchema>;
 
-export type ReleaseConfig = {
-  name: string;
-  namespace?: string;
-  valueFiles?: string[];
-  values?: Record<string, unknown>;
-};
+export const helmingwayConfigSchema = z.object({
+  helm: z.optional(
+    z.object({
+      charts: z.optional(z.array(chartConfigSchema)),
+    }),
+  ),
+});
+
+export type HelmingwayConfig = z.infer<typeof helmingwayConfigSchema>;
 
 /**
  * Load and normalize a Helmingway config file from disk.
  */
 export async function loadHelmingwayConfig(configPath: string): Promise<HelmingwayConfig> {
   const content = await fs.readFile(configPath, "utf8");
-  const raw = parse(content) as RawHelmingwayConfig;
-
-  return {
-    helm: {
-      charts: (raw.helm?.charts ?? []).map((chart) => ({
-        name: chart.name,
-        source: parseChartSource(chart.source),
-        namespace: chart.namespace,
-        releases: chart.releases,
-      })),
-    },
-  };
+  return helmingwayConfigSchema.parse(parse(content));
 }
 
 /**
