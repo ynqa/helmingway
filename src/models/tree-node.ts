@@ -1,4 +1,3 @@
-/* eslint-disable sort-imports */
 import type { ChartConfig } from "./config";
 import type { PreviewResource } from "./preview-resource";
 import { formatChartSource } from "./chart-source";

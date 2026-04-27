@@ -1,11 +1,10 @@
-/* eslint-disable sort-imports */
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
+import type { ChartConfig, ReleaseConfig } from "../models";
 import { execFile as execFileCallback } from "node:child_process";
 import { promisify } from "node:util";
 import { stringify } from "yaml";
-import type { ChartConfig, ReleaseConfig } from "../models";
 
 const execFile = promisify(execFileCallback);
 

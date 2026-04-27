@@ -1,20 +1,19 @@
-/* eslint-disable sort-imports */
 import * as path from "node:path";
 import * as vscode from "vscode";
-import { getPrimaryWorkspaceFolder } from "../vscode-helpers";
 import {
   type ChartTreeNode,
   type HelmingwayConfig,
   type HelmingwayTreeNode,
-  loadHelmingwayConfig,
-  parsePreviewResources,
   type ReleaseManifestView,
   type ReleaseTreeNode,
   type ResourceTreeNode,
+  loadHelmingwayConfig,
+  parsePreviewResources,
   toChartTreeNode,
   toReleaseTreeNodes,
 } from "../models";
 import { HelmService, type HelmTemplateStatus } from "../helm/service";
+import { getPrimaryWorkspaceFolder } from "../vscode-helpers";
 
 /**
  * Theme icon for each render status, used in the tree view.

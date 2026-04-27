@@ -1,9 +1,7 @@
-/* eslint-disable sort-imports */
 import * as vscode from "vscode";
-import { HelmTemplateCache } from "./template-cache";
-import { runHelmTemplate } from "./template";
+import { HelmTemplateCache, type HelmTemplateEntry } from "./template-cache";
 import type { HelmingwayConfig } from "../models";
-import type { HelmTemplateEntry } from "./template-cache";
+import { runHelmTemplate } from "./template";
 
 type RebuildHelmTemplateCacheFailure = {
   chartName: string;
