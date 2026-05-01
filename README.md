@@ -1,5 +1,7 @@
 # Helmingway
 
+[![Visual Studio Marketplace](https://img.shields.io/badge/VS%20Code%20Marketplace-helmingway-blue)](https://marketplace.visualstudio.com/items?itemName=ynqa.helmingway-dev)
+
 <p align="center">
   <img alt="Helmingway logo" src="assets/helmingway.logo.png" width="30%">
 </p>
