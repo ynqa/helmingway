@@ -1,0 +1,11 @@
+replicaCount: 3
+
+service:
+  type: LoadBalancer
+  ports:
+    http: 80
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi

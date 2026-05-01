@@ -1,0 +1,38 @@
+# Configuration for Helm rendering.
+helm:
+  charts:
+    - name: nginx
+      # OCI chart reference passed to `helm template`.
+      source: oci://registry-1.docker.io/bitnamicharts/nginx
+
+      # Helm releases available from the UI.
+      # Each release defines a release name, values files, and inline values.
+      releases:
+        - name: base
+          namespace: base
+          valueFiles:
+            - examples/base.yaml
+          values: {}
+
+        - name: dev
+          namespace: dev
+          # Values files passed to `helm template --values`.
+          valueFiles:
+            - examples/base.yaml
+            - examples/env/dev.yaml
+          # Inline values applied after the values files.
+          values: {}
+
+        - name: staging
+          namespace: staging
+          valueFiles:
+            - examples/base.yaml
+            - examples/env/staging.yaml
+          values: {}
+
+        - name: prod
+          namespace: production
+          valueFiles:
+            - examples/base.yaml
+            - examples/env/prod.yaml
+          values: {}

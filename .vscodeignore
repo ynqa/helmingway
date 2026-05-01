@@ -1,0 +1,13 @@
+.git/**
+.gitignore
+.pnpm-store/**
+node_modules/.pnpm/**
+src/**
+*.vsix
+*.log
+.npmrc
+.oxfmtrc.jsonc
+.oxlintrc.jsonc
+helmingway.yaml
+pnpm-lock.yaml
+tsconfig.json

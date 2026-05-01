@@ -1,0 +1,145 @@
+{
+  "name": "helmingway-dev",
+  "displayName": "Helmingway Preview",
+  "publisher": "ynqa",
+  "version": "0.1.0",
+  "description": "Preview, filter, and compare Helm-rendered Kubernetes manifests in VS Code.",
+  "icon": "assets/helmingway.logo.png",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ynqa/helmingway.git"
+  },
+  "categories": [
+    "Visualization"
+  ],
+  "main": "./out/extension.js",
+  "scripts": {
+    "compile": "tsc -p ./",
+    "format": "oxfmt . --write",
+    "format:check": "oxfmt . --check",
+    "lint": "oxlint src",
+    "vscode:package": "pnpm run compile && vsce package",
+    "vscode:publish": "vsce publish"
+  },
+  "dependencies": {
+    "@zod/mini": "4.0.0-beta.0",
+    "yaml": "^2.8.1"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "@types/vscode": "^1.116.0",
+    "@vscode/vsce": "^3.9.1",
+    "oxfmt": "^0.47.0",
+    "oxlint": "^1.61.0",
+    "typescript": "^6.0.3"
+  },
+  "contributes": {
+    "commands": [
+      {
+        "command": "helmingway.openReleasePreview",
+        "title": "Open Preview"
+      },
+      {
+        "command": "helmingway.openReleaseValueFile",
+        "title": "Open Values File",
+        "icon": "$(go-to-file)"
+      },
+      {
+        "command": "helmingway.compareSelectedReleases",
+        "title": "Compare"
+      },
+      {
+        "command": "helmingway.toggleReleaseResources",
+        "title": "Toggle All Resources",
+        "icon": "$(checklist)"
+      },
+      {
+        "command": "helmingway.syncHelmTemplateCache",
+        "title": "Sync Helm Template Cache",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "helmingway.closeAllPreviews",
+        "title": "Close All Previews",
+        "icon": "$(close-all)"
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "helmingway.openReleasePreview",
+          "when": "false"
+        },
+        {
+          "command": "helmingway.openReleaseValueFile",
+          "when": "false"
+        },
+        {
+          "command": "helmingway.syncHelmTemplateCache",
+          "when": "false"
+        },
+        {
+          "command": "helmingway.compareSelectedReleases",
+          "when": "false"
+        },
+        {
+          "command": "helmingway.toggleReleaseResources",
+          "when": "false"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "helmingway.syncHelmTemplateCache",
+          "when": "view == helmingway.preview",
+          "group": "navigation"
+        },
+        {
+          "command": "helmingway.closeAllPreviews",
+          "when": "view == helmingway.preview",
+          "group": "navigation@1"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "helmingway.openReleasePreview",
+          "when": "view == helmingway.preview && viewItem == release"
+        },
+        {
+          "command": "helmingway.openReleaseValueFile",
+          "when": "view == helmingway.preview && viewItem == release"
+        },
+        {
+          "command": "helmingway.compareSelectedReleases",
+          "when": "view == helmingway.preview && viewItem == release && listMultiSelection"
+        },
+        {
+          "command": "helmingway.toggleReleaseResources",
+          "when": "view == helmingway.preview && viewItem == release",
+          "group": "inline"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "helmingway",
+          "title": "Helmingway",
+          "icon": "assets/helmingway.icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "helmingway": [
+        {
+          "id": "helmingway.preview",
+          "name": "Preview"
+        }
+      ]
+    }
+  },
+  "engines": {
+    "vscode": "^1.116.0"
+  },
+  "packageManager": "pnpm@10.27.0"
+}

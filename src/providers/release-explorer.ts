@@ -1,0 +1,263 @@
+import * as vscode from "vscode";
+import {
+  type ChartTreeNode,
+  type HelmingwayConfig,
+  type HelmingwayTreeNode,
+  findReleaseConfig,
+  type ReleaseManifestView,
+  type ReleaseTreeNode,
+  type ResourceTreeNode,
+  parsePreviewResources,
+  toChartTreeNode,
+  toReleaseTreeNodes,
+} from "../models";
+import { HelmService, type HelmTemplateStatus } from "../helm/service";
+
+/**
+ * Theme icon for each render status, used in the Release Explorer tree.
+ *
+ * ThemeIcon reference:
+ * - https://code.visualstudio.com/api/references/icons-in-labels
+ */
+const helmTemplateStatusIcon = {
+  idle: new vscode.ThemeIcon("circle-outline"),
+  rendering: new vscode.ThemeIcon("sync"),
+  rendered: new vscode.ThemeIcon("check"),
+  failed: new vscode.ThemeIcon("error"),
+} satisfies Record<HelmTemplateStatus, vscode.ThemeIcon>;
+
+/**
+ * Provide the chart, release, and resource nodes shown in Preview view.
+ */
+export class ReleaseExplorerProvider implements vscode.TreeDataProvider<HelmingwayTreeNode> {
+  private readonly onDidChangeTreeDataEmitter = new vscode.EventEmitter<
+    HelmingwayTreeNode | undefined
+  >();
+  private readonly resourceExclusions = new ResourceExclusionStore();
+  private currentConfig: HelmingwayConfig = {};
+
+  constructor(private readonly helmService: HelmService) {}
+
+  readonly onDidChangeTreeData = this.onDidChangeTreeDataEmitter.event;
+
+  refresh(): void {
+    this.onDidChangeTreeDataEmitter.fire(undefined);
+  }
+
+  /**
+   * Replace the config snapshot used to build the Release Explorer.
+   */
+  setConfig(config: HelmingwayConfig): void {
+    this.currentConfig = config;
+    this.refresh();
+  }
+
+  /**
+   * Apply Release Explorer checkbox changes to the resource filter state.
+   */
+  updateResourceCheckboxes(event: vscode.TreeCheckboxChangeEvent<HelmingwayTreeNode>): void {
+    for (const [node, state] of event.items) {
+      if (node.type !== "resource") {
+        continue;
+      }
+
+      this.resourceExclusions.updateResourceCheckbox(node, state);
+    }
+
+    this.refresh();
+  }
+
+  /**
+   * Toggle every resource checkbox for a release.
+   */
+  toggleReleaseResources(node: ReleaseTreeNode): boolean {
+    const resources = this.getResourceChildren(node);
+    if (resources.length === 0) {
+      return false;
+    }
+
+    const shouldCheckAll = resources.some(
+      (resourceNode) => !this.resourceExclusions.isChecked(resourceNode),
+    );
+    this.resourceExclusions.updateReleaseResources(node, resources, shouldCheckAll);
+    this.refresh();
+
+    return true;
+  }
+
+  /**
+   * Get render status and parsed manifest resources for a release.
+   */
+  getReleaseManifestView(node: ReleaseTreeNode): ReleaseManifestView {
+    const entry = this.helmService.getHelmTemplateCacheEntry(node.chartName, node.releaseName);
+    return {
+      release: node,
+      status: entry?.status ?? "idle",
+      errorMessage: entry?.helmTemplateErrorMessage,
+      resources:
+        entry?.status === "rendered" && entry.content !== undefined
+          ? this.getResourceChildren(node).filter((resourceNode) =>
+              this.resourceExclusions.isChecked(resourceNode),
+            )
+          : [],
+    };
+  }
+
+  /**
+   * Get values files configured for a release.
+   */
+  getReleaseValueFiles(node: ReleaseTreeNode): readonly string[] {
+    return findReleaseConfig(this.currentConfig, node.chartName, node.releaseName)?.valueFiles ?? [];
+  }
+
+  /**
+   * Return child nodes for the requested explorer level.
+   */
+  async getChildren(element?: HelmingwayTreeNode): Promise<HelmingwayTreeNode[]> {
+    if (!element) {
+      return (this.currentConfig.helm?.charts ?? []).map(toChartTreeNode);
+    }
+
+    if (element.type === "chart") {
+      const chart = (this.currentConfig.helm?.charts ?? []).find(
+        (chart) => chart.name === element.chartName,
+      );
+      return chart ? toReleaseTreeNodes(chart) : [];
+    }
+
+    if (element.type === "release") {
+      return this.getResourceChildren(element);
+    }
+
+    return [];
+  }
+
+  /**
+   * Convert an explorer node into the VS Code TreeItem used for display.
+   */
+  getTreeItem(element: HelmingwayTreeNode): vscode.TreeItem {
+    if (element.type === "chart") {
+      return this.getChartTreeItem(element);
+    } else if (element.type === "release") {
+      return this.getReleaseTreeItem(element);
+    } else if (element.type === "resource") {
+      return this.getResourceTreeItem(element);
+    }
+
+    throw new Error(`Unhandled explorer node type: ${JSON.stringify(element)}`);
+  }
+
+  private getChartTreeItem(element: ChartTreeNode): vscode.TreeItem {
+    const item = new vscode.TreeItem(element.chartName, vscode.TreeItemCollapsibleState.Collapsed);
+    item.description = element.chartPath;
+    item.iconPath = new vscode.ThemeIcon("package");
+    return item;
+  }
+
+  private getReleaseTreeItem(element: ReleaseTreeNode): vscode.TreeItem {
+    const resources = this.getResourceChildren(element);
+    const collapsibleState =
+      resources.length > 0
+        ? vscode.TreeItemCollapsibleState.Collapsed
+        : vscode.TreeItemCollapsibleState.None;
+    const item = new vscode.TreeItem(element.releaseName, collapsibleState);
+    const entry = this.helmService.getHelmTemplateCacheEntry(
+      element.chartName,
+      element.releaseName,
+    );
+    const status = entry?.status ?? "idle";
+    const checkedCount = this.getReleaseManifestView(element).resources.length;
+    item.contextValue = "release";
+    item.iconPath = helmTemplateStatusIcon[status];
+    item.description = checkedCount > 0 ? `${checkedCount} checked` : status;
+    if (entry?.helmTemplateErrorMessage) {
+      item.tooltip = entry.helmTemplateErrorMessage;
+    }
+    item.command = {
+      command: "helmingway.openReleasePreview",
+      title: "Open Preview",
+      arguments: [element],
+    };
+    return item;
+  }
+
+  private getResourceTreeItem(element: ResourceTreeNode): vscode.TreeItem {
+    const item = new vscode.TreeItem(
+      element.resource.resourceLabel,
+      vscode.TreeItemCollapsibleState.None,
+    );
+    item.id = `${element.chartName}/${element.releaseName}/${element.resource.resourceId}`;
+    item.contextValue = "resource";
+    item.iconPath = new vscode.ThemeIcon("symbol-object");
+    item.checkboxState = this.resourceExclusions.isChecked(element)
+      ? vscode.TreeItemCheckboxState.Checked
+      : vscode.TreeItemCheckboxState.Unchecked;
+    return item;
+  }
+
+  /**
+   * Build resource child nodes from the rendered manifest cached for a release.
+   */
+  private getResourceChildren(node: ReleaseTreeNode): ResourceTreeNode[] {
+    const entry = this.helmService.getHelmTemplateCacheEntry(node.chartName, node.releaseName);
+    if (entry?.status !== "rendered" || entry.content === undefined) {
+      return [];
+    }
+
+    return parsePreviewResources(entry.content).map((resource) => ({
+      type: "resource",
+      chartName: node.chartName,
+      releaseName: node.releaseName,
+      resource,
+    }));
+  }
+}
+
+class ResourceExclusionStore {
+  private readonly excludedResourceKeysByRelease = new Map<string, Set<string>>();
+
+  updateResourceCheckbox(node: ResourceTreeNode, state: vscode.TreeItemCheckboxState): void {
+    const releaseKey = this.getReleaseKey(node);
+    const excludedKeys = this.excludedResourceKeysByRelease.get(releaseKey) ?? new Set<string>();
+
+    if (state === vscode.TreeItemCheckboxState.Checked) {
+      excludedKeys.delete(node.resource.resourceId);
+    } else {
+      excludedKeys.add(node.resource.resourceId);
+    }
+
+    if (excludedKeys.size === 0) {
+      this.excludedResourceKeysByRelease.delete(releaseKey);
+    } else {
+      this.excludedResourceKeysByRelease.set(releaseKey, excludedKeys);
+    }
+  }
+
+  updateReleaseResources(
+    node: ReleaseTreeNode,
+    resources: ResourceTreeNode[],
+    checked: boolean,
+  ): void {
+    const releaseKey = this.getReleaseKey(node);
+
+    if (checked) {
+      this.excludedResourceKeysByRelease.delete(releaseKey);
+      return;
+    }
+
+    this.excludedResourceKeysByRelease.set(
+      releaseKey,
+      new Set(resources.map((resourceNode) => resourceNode.resource.resourceId)),
+    );
+  }
+
+  isChecked(node: ResourceTreeNode): boolean {
+    return !this.excludedResourceKeysByRelease
+      .get(this.getReleaseKey(node))
+      ?.has(node.resource.resourceId);
+  }
+
+  private getReleaseKey(node: Pick<ReleaseTreeNode, "chartName" | "releaseName">): string {
+    return `${node.chartName}/${node.releaseName}`;
+  }
+}
